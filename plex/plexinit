@@ -207,11 +207,6 @@ plex_usergroup()
     if ! /usr/sbin/pw usershow plex >/dev/null 2>&1; then
         /usr/sbin/pw useradd plex -u 972 -g 972  -c "Plex Media Server" -d /nonexistent -s /usr/sbin/nologin >/dev/null 2>&1
     fi
-
-    # Stop script execution on failed plex user/group creation.
-    if [ $? -eq 1 ]; then
-        error_notify "Error: A problem has occurred during user/group creation."
-    fi
 }
 
 pkg_symlinkdir()
@@ -233,11 +228,6 @@ pkg_symlinkdir()
     else
         /bin/mkdir -p ${CWDIR}/system/pkg/pkgmeta
         /bin/ln -Ffhs ${CWDIR}/system/pkg/pkgmeta ${PKGMETA}
-    fi
-
-    # Stop script execution on failed symlink/dir creation.
-    if [ $? -eq 1 ]; then
-        error_notify "Error: A problem has occurred during symlink/dir creation."
     fi
 }
 
@@ -264,11 +254,6 @@ compat9x_symlinkdir()
         /bin/mkdir -p ${CWDIR}/system/compat9x/libdata/ldconfig32
         /bin/ln -Ffhs ${CWDIR}/system/compat9x/libdata/ldconfig32 ${COMPAT9XPATH4}
     fi
-
-    # Stop script execution on failed symlink/dir creation.
-    if [ $? -eq 1 ]; then
-        error_notify "Error: A problem has occurred during symlink/dir creation."
-    fi
 }
 
 plex_symlinkdir()
@@ -286,11 +271,6 @@ plex_symlinkdir()
     fi
     if [ ! -d ${CWDIR}/system/rc.d ]; then
         /bin/mkdir -p ${CWDIR}/system/rc.d
-    fi
-
-    # Stop script execution on failed symlink/dir creation.
-    if [ $? -eq 1 ]; then
-        error_notify "Error: A problem has occurred during symlink/dir creation."
     fi
 }
 
