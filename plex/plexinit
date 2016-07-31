@@ -118,6 +118,9 @@ extenstion_upgrade()
             else
                 /bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
             fi
+        else
+            # Perform cleanup.
+            /bin/rm -R ${CWDIR}/update
         fi
     fi
 }
