@@ -5,7 +5,7 @@
 # Require: NAS4Free 10.x and later version.
 # *Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
 
-# Determine current working directory.
+# Determine current working directory as absolute path.
 CWDIR=$(dirname $(realpath $0))
 
 # Global variables.
@@ -96,20 +96,22 @@ extenstion_upgrade()
 {
     # Fetch the version file before upgrade.
     /bin/mkdir -p ${CWDIR}/update
-    /usr/bin/fetch -o ${CWDIR}/update https:? || error_notify "Error: A problem has occurred while fetching version file."
+    /usr/bin/fetch -o ${CWDIR}/update https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/testing/plex/version || error_notify "Error: A problem has occurred while fetching version file."
 
     # Compare the version files and fetch latest version.
     if [ -f ${CWDIR}/update/version ]; then
         UPDATEVER=`cat ${CWDIR}/update/version | tr -d .`
         CURRENTVER=`cat ${CWDIR}/version | tr -d .`
         if [ ${UPDATEVER} -gt ${CURRENTVER} ]; then
-            /usr/bin/fetch -o ${CWDIR}/update https:? || error_notify "Error: A problem has occurred while fetching extension package."
-            /usr/bin/tar -xf ${CWDIR}/update/master.zip --exclude='.git*' --strip-components 1
-            /bin/rm ${CWDIR}/update/master.zip
-            /bin/cp -R ${CWDIR}/update/* ${CWDIR}/
+            /usr/bin/fetch -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/testing.zip || error_notify "Error: A problem has occurred while fetching extension package."
+            /usr/bin/tar -xf ${CWDIR}/update/testing.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+            /bin/chmod +x ${CWDIR}/update/plex/plexinit
+            /bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
+
+            # Perform cleanup.
             /bin/rm -R ${CWDIR}/update
 
-            # Remove old gui files and rename new, otherwise copy new gui files.
+            # If gui disabled then remove old folder and rename new, otherwise copy new gui files.
             if [ -d ${CWDIR}/gui-off ]; then
                 /bin/rm -R ${CWDIR}/gui-off
                 /bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming folder."
