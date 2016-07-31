@@ -81,8 +81,8 @@ if ($_POST) {
 
     if (isset($_POST['upgrade']) && $_POST['upgrade']) {
         $return_val = mwexec("plexinit -u", true);
-        if ($return_val == 0) { $savemsg .= gettext("Plex Media Server upgraded successfully"); }
-        else { $input_errors[] = gettext("Plex Media Server upgrade failed"); }
+        if ($return_val == 0) { $savemsg .= gettext("Upgrade command successfully executed, refresh page to view new version if available"); }
+        else { $input_errors[] = gettext("An error has occurred during upgrade process"); }
     }
 
     if (isset($_POST['backup']) && $_POST['backup']) {
