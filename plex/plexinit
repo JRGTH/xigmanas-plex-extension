@@ -94,11 +94,11 @@ pkg_upgrade()
 
 extenstion_upgrade()
 {
-    # Fetch the version file before upgrade.
+    # Create temporary folder for the upgrade process.
     /bin/mkdir -p ${CWDIR}/update
     /usr/bin/fetch -o ${CWDIR}/update https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/testing/plex/version || error_notify "Error: A problem has occurred while fetching version file."
 
-    # Compare the version files and fetch latest version.
+    # Compare version files and fetch latest package if available.
     if [ -f ${CWDIR}/update/version ]; then
         UPDATEVER=`cat ${CWDIR}/update/version | tr -d .`
         CURRENTVER=`cat ${CWDIR}/version | tr -d .`
