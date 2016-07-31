@@ -8,6 +8,16 @@
 # Determine current working directory as absolute path.
 CWDIR=$(dirname $(realpath $0))
 
+# Always ensure the version file is present, otherwise update the extension files.
+if ! [ -f ${CWDIR}/version ]; then
+    /bin/mkdir -p ${CWDIR}/update
+    /usr/bin/fetch -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/testing.zip
+    /usr/bin/tar -xf ${CWDIR}/update/testing.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+    /bin/chmod +x ${CWDIR}/update/plex/plexinit
+    /bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
+    /bin/rm -R ${CWDIR}/update
+fi
+
 # Global variables.
 PLATFORM=`uname -p`
 PRODUCT=`uname -i`
