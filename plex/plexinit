@@ -358,7 +358,7 @@ while getopts ":otgsprvuh" option; do
         [r]) service ${CMDNAME} onerestart 2> /dev/null || ${PLEXRCD} onerestart; exit 0 ;;
         [v]) echo "${APPNAME} ${APPVERSION}"; pkg info -I ${PRDNAME}; exit 0 ;;
         [u]) pkg_upgrade; exit 0 ;;
-        [?]) echo "Invalid option, -h for usage."; exit 0 ;;
+        [?]) echo "Invalid option, -h for usage."; exit 1 ;;
     esac
 done
 
