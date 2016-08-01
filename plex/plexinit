@@ -8,23 +8,13 @@
 # Determine current working directory as absolute path.
 CWDIR=$(dirname $(realpath $0))
 
-# Always ensure the version file is present, otherwise update the extension files.
-if ! [ -f ${CWDIR}/version ]; then
-    /bin/mkdir -p ${CWDIR}/update
-    /usr/bin/fetch -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/testing.zip
-    /usr/bin/tar -xf ${CWDIR}/update/testing.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
-    /bin/chmod +x ${CWDIR}/update/plex/plexinit
-    /bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
-    /bin/rm -R ${CWDIR}/update
-fi
-
 # Global variables.
 PLATFORM=`uname -p`
 PRODUCT=`uname -i`
 PRDVERSION=`uname -r | cut -d. -f1`
 PRDPLATFORM=`cat /etc/platform`
 SCRIPTNAME=`basename $0`
-APPVERSION=`cat ${CWDIR}/version`
+APPVERSION=`cat ${CWDIR}/version 2> /dev/null`
 APPNAME="Plex Extension"
 PKGCACHE="/var/cache/pkg"
 PKGMETA="/var/db/pkg"
@@ -98,7 +88,7 @@ pkg_upgrade()
     if [ -f ${CWDIR}/version ]; then
         extenstion_upgrade
     else
-        error_notify "Error: A problem has occurred while looking for version file."
+        ext_initial_download
     fi
 }
 
@@ -131,6 +121,25 @@ extenstion_upgrade()
         else
             # Perform cleanup.
             /bin/rm -R ${CWDIR}/update
+        fi
+    fi
+}
+
+ext_initial_download()
+{
+    # Always ensure the version file is present, otherwise update the extension files on startup.
+    if ! [ -f ${CWDIR}/version ]; then
+        /bin/mkdir -p ${CWDIR}/update
+        /usr/bin/fetch -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/testing.zip
+        /usr/bin/tar -xf ${CWDIR}/update/testing.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+        /bin/chmod +x ${CWDIR}/update/plex/plexinit
+        /bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
+        /bin/rm -R ${CWDIR}/update
+
+        # If gui disabled then remove old folder and rename new.
+        if [ -d ${CWDIR}/gui-off ]; then
+            /bin/rm -Rf ${CWDIR}/gui-off
+            /bin/mv ${CWDIR}/gui ${CWDIR}/gui-off
         fi
     fi
 }
@@ -337,6 +346,7 @@ plex_init()
 
     # Function calls.
     platform_check
+    ext_initial_download
     plex_initial_download
     plex_usergroup
     product_check
@@ -357,8 +367,8 @@ while getopts ":otgsprvuh" option; do
         echo "        -t  Disable the addon GUI."
         echo "        -h  Display this help message."; exit 0 ;;
         [o]) OBI_INSTALL="ON";; #AFS: To prevent nested PHP-CGI call for installation with OBI.
-        [g]) gui_enable;; # For enable the addon gui.
-        [t]) gui_disable;; # For disable the addon gui.
+        [g]) gui_enable; exit 0 ;; # For enable the addon gui.
+        [t]) gui_disable; exit 0 ;; # For disable the addon gui.
         [s]) service ${CMDNAME} onestart 2> /dev/null || ${PLEXRCD} onestart; exit 0 ;;
         [p]) service ${CMDNAME} onestop 2> /dev/null || ${PLEXRCD} onestop && /bin/rm -f ${PLEXPID};  exit 0 ;;
         [r]) service ${CMDNAME} onerestart 2> /dev/null || ${PLEXRCD} onerestart; exit 0 ;;
