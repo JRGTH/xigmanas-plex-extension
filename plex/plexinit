@@ -292,9 +292,15 @@ plex_symlinkdir()
 plex_rcparamstart()
 {
     # Plex Media Server rc parameters.
-    /usr/sbin/sysrc ${CMDNAME}_enable="NO" >/dev/null 2>&1
-    /usr/sbin/sysrc ${CMDNAME}_support_path="${SUPPORTPATH}" >/dev/null 2>&1
-    /usr/sbin/sysrc ${CMDNAME}_maxplugins="6" >/dev/null 2>&1
+    if ! /bin/cat "/etc/rc.conf" | grep "${CMDNAME}_enable=\"NO\"" >/dev/null 2>&1; then
+        /usr/sbin/sysrc ${CMDNAME}_enable="NO" >/dev/null 2>&1
+    fi
+    if ! /bin/cat "/etc/rc.conf" | grep "${CMDNAME}_support_path=\"${SUPPORTPATH}\"" >/dev/null 2>&1; then
+        /usr/sbin/sysrc ${CMDNAME}_support_path="${SUPPORTPATH}" >/dev/null 2>&1
+    fi
+    if ! /bin/cat "/etc/rc.conf" | grep "${CMDNAME}_maxplugins=\"6\"" >/dev/null 2>&1; then
+        /usr/sbin/sysrc ${CMDNAME}_maxplugins="6" >/dev/null 2>&1
+    fi
 
     # Link plexinit to /usr/local/sbin.
     if [ ! -f /usr/local/sbin/plexinit ]; then
