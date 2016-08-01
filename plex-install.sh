@@ -13,7 +13,7 @@ SCRIPTNAME=`basename $0`
 error_notify()
 {
     # Logg and notify message on error and exit.
-    logger "${SCRIPTNAME}: an error has occurred during install process"
+    /usr/bin/logger "${SCRIPTNAME}: an error has occurred during install process"
     echo -e "$*" >&2 ; exit 1
 }
 
@@ -53,6 +53,15 @@ install_main()
     # Make executable and run plexinit script.
     /bin/chmod 0755 ${CWDIR}/plex/plexinit
     ${CWDIR}/plex/plexinit
+
+    # Check exit status and finish installation.
+    if [ $? -eq 0 ]; then
+        echo "Plex Extension installed successfully!"
+        /usr/bin/logger "${SCRIPTNAME} Plex Extension installed successfully"
+        /bin/rm -f "${CWDIR}/master.zip" "${CWDIR}/README.md" "${CWDIR}/plex-install.sh"
+    else
+        error_notify "Error: A problem has occurred during install."
+    fi
 }
 
 # Alternate branches(for developers/testing).

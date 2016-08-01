@@ -63,32 +63,32 @@ $plexext_version = exec("/bin/cat {$rootfolder}/version");
 if ($_POST) {
     if (isset($_POST['start']) && $_POST['start']) {
         $return_val = mwexec("/usr/local/sbin/plexinit -s", true);
-        if ($return_val == 0) { $savemsg .= gettext("Plex Media Server started successfully"); }
-        else { $input_errors[] = gettext("Plex Media Server startup failed"); }
+        if ($return_val == 0) { $savemsg .= gettext("Plex Media Server started successfully."); }
+        else { $input_errors[] = gettext("Plex Media Server startup failed."); }
     }
 
     if (isset($_POST['stop']) && $_POST['stop']) {
         $return_val = mwexec("/usr/local/sbin/plexinit -p && rm -f {$pidfile}", true);
-        if ($return_val == 0) { $savemsg .= gettext("Plex Media Server stopped successfully"); }
-        else { $input_errors[] = gettext("Plex Media Server stop failed"); }
+        if ($return_val == 0) { $savemsg .= gettext("Plex Media Server stopped successfully."); }
+        else { $input_errors[] = gettext("Plex Media Server stop failed."); }
     }
 
     if (isset($_POST['restart']) && $_POST['restart']) {
         $return_val = mwexec("/usr/local/sbin/plexinit -r", true);
-        if ($return_val == 0) { $savemsg .= gettext("Plex Media Server restarted successfully"); }
-        else { $input_errors[] = gettext("Plex Media Server restart failed"); }
+        if ($return_val == 0) { $savemsg .= gettext("Plex Media Server restarted successfully."); }
+        else { $input_errors[] = gettext("Plex Media Server restart failed."); }
     }
 
     if (isset($_POST['upgrade']) && $_POST['upgrade']) {
         $return_val = mwexec("/usr/local/sbin/plexinit -u", true);
-        if ($return_val == 0) { $savemsg .= gettext("Upgrade command successfully executed, refresh page to view new version if available"); }
-        else { $input_errors[] = gettext("An error has occurred during upgrade process"); }
+        if ($return_val == 0) { $savemsg .= gettext("Upgrade command successfully executed, refresh page to view new version if available."); }
+        else { $input_errors[] = gettext("An error has occurred during upgrade process."); }
     }
 
     if (isset($_POST['backup']) && $_POST['backup']) {
         $return_val = mwexec("mkdir -p {$rootfolder}/backup && cd {$rootfolder} && tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar {$rootfolder}/backup", true);
-        if ($return_val == 0) { $savemsg .= gettext("Plexdata backup created successfully"); }
-        else { $input_errors[] = gettext("Plexdata backup failed"); }
+        if ($return_val == 0) { $savemsg .= gettext("Plexdata backup created successfully."); }
+        else { $input_errors[] = gettext("Plexdata backup failed."); }
     }
 
     if (isset($_POST['remove']) && $_POST['remove']) {

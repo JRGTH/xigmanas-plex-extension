@@ -45,7 +45,7 @@ COMPATPKG="compat9x-amd64"
 error_notify()
 {
     # Logg and notify message on error and exit.
-    logger "${SCRIPTNAME}: an error has occurred during initialize"
+    /usr/bin/logger "${SCRIPTNAME}: an error has occurred during initialize"
     echo -e "$*" >&2 ; exit 1
 }
 
@@ -314,7 +314,7 @@ plex_rcparamstart()
     fi
     # Logg on startup success.
     if [ $? -eq 0 ]; then
-        logger "${SCRIPTNAME}: script has been started successfully"
+        /usr/bin/logger "${SCRIPTNAME}: script has been started successfully"
     fi
 }
 
