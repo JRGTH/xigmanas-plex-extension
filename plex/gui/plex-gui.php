@@ -105,13 +105,15 @@ if ($_POST) {
         bindtextdomain("nas4free", $textdomain);
         if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
         mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
-        mwexec("/usr/local/sbin/plexinit -p", true);
         mwexec("/usr/local/sbin/plexinit -t", true);
+        mwexec("/usr/local/sbin/plexinit -p && rm -f {$pidfile}", true);
         mwexec("pkg delete -y plexmediaserver && pkg delete -y compat9x-amd64", true);
         if (isset($_POST['plexdata'])) { $uninstall_cmd = "rm -Rf {$rootfolder}/backup; rm -Rf {$rootfolder}/gui; rm -Rf {$rootfolder}/gui-off;  rm -Rf {$rootfolder}/locale-plex; rm -Rf {$rootfolder}/plexdata; rm -Rf {$rootfolder}/system; rm {$rootfolder}/plexinit; rm {$rootfolder}/README; rm {$rootfolder}/version"; }
         else { $uninstall_cmd = "rm -Rf {$rootfolder}/backup; rm -Rf {$rootfolder}/gui; rm -Rf {$rootfolder}/gui-off;  rm -Rf {$rootfolder}/locale-plex; rm -Rf {$rootfolder}/system; rm {$rootfolder}/plexinit; rm {$rootfolder}/README; rm {$rootfolder}/version"; }
         mwexec($uninstall_cmd, true);
         if (is_link("/usr/local/share/plexmediaserver")) mwexec("rm /usr/local/share/plexmediaserver", true);
+        if (is_link("/var/cache/pkg")) mwexec("rm /var/cache/pkg", true);
+        if (is_link("/var/db/pkg")) mwexec("rm /var/db/pkg && mkdir /var/db/pkg", true);
         if (is_array($config['rc']['postinit']) && is_array($config['rc']['postinit']['cmd'])) {
             for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) {
                 if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) { unset($config['rc']['postinit']['cmd'][$i]); }
