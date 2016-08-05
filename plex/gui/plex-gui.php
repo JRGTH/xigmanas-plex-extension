@@ -47,6 +47,7 @@ if ( is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']
     for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) { if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) break; ++$i; }
 }
 $rootfolder = dirname($config['rc']['postinit']['cmd'][$i]);
+$versionfile = "{$rootfolder}/version";
 if ($rootfolder == "") $input_errors[] = gettext("Extension installed with fault");
 else {
 // Initialize locales.
@@ -56,9 +57,6 @@ else {
     bindtextdomain("nas4free", $textdomain_plex);
 }
 if (is_file("{$rootfolder}/postinit")) unlink("{$rootfolder}/postinit");
-
-$plex_version = exec("/usr/local/sbin/plexinit -v");
-$plexext_version = exec("/bin/cat {$rootfolder}/version");
 
 if ($_POST) {
     if (isset($_POST['start']) && $_POST['start']) {
@@ -81,7 +79,7 @@ if ($_POST) {
 
     if (isset($_POST['upgrade']) && $_POST['upgrade']) {
         $return_val = mwexec("/usr/local/sbin/plexinit -u", true);
-        if ($return_val == 0) { $savemsg .= gettext("Upgrade command successfully executed, refresh page to view new version if available."); }
+        if ($return_val == 0) { $savemsg .= gettext("Upgrade command successfully executed."); }
         else { $input_errors[] = gettext("An error has occurred during upgrade process."); }
     }
 
@@ -125,6 +123,23 @@ if ($_POST) {
     }
 }
 
+function get_version_plex() {
+    exec("pkg info -I plexmediaserver", $result);
+    return ($result[0]);
+}
+
+function get_version_ext() {
+    global $versionfile;
+    exec("/bin/cat {$versionfile}", $result);
+    return ($result[0]);
+}
+
+if (is_ajax()) {
+    $versioninfo['plex'] = get_version_plex();
+    $versioninfo['ext'] = get_version_ext();
+    render_ajax($versioninfo);
+}
+
 function get_process_info() {
     global $pidfile;
     if (exec("ps acx | grep -f $pidfile")) { $state = '<a style=" background-color: #00ff00; ">&nbsp;&nbsp;<b>'.gettext("running").'</b>&nbsp;&nbsp;</a>'; }
@@ -154,6 +169,8 @@ $(document).ready(function(){
     gui.recall(0, 2000, 'plex-gui.php', null, function(data) {
         $('#procinfo').html(data.info);
         $('#procinfo_pid').html(data.pid);
+        $('#versioninfo').html(data.plex);
+        $('#versioninfo_ext').html(data.ext);
     });
 });
 //]]>
@@ -170,8 +187,14 @@ $(document).ready(function(){
             <table width="100%" border="0" cellpadding="6" cellspacing="0">
                 <?php html_titleline("Plex ".gettext("Information"));?>
                 <?php html_text("installation_directory", gettext("Installation directory"), sprintf(gettext("The extension is installed in %s"), $rootfolder));?>
-                <?php html_text("plex_version", gettext("Plex version"), $plex_version);?>
-                <?php html_text("plexext_version", gettext("Extension version"), $plexext_version);?>
+                <tr>
+                    <td class="vncellt"><?=gettext("Plex version");?></td>
+                    <td class="vtable"><span name="versioninfo" id="versioninfo"><?=get_version_plex()?></span></td>
+                </tr>
+                <tr>
+                    <td class="vncellt"><?=gettext("Extension version");?></td>
+                    <td class="vtable"><span name="versioninfo_ext" id="versioninfo_ext"><?=get_version_ext()?></span></td>
+                </tr>
                 <tr>
                     <td class="vncellt"><?=gettext("Status");?></td>
                     <td class="vtable"><span name="procinfo" id="procinfo"><?=get_process_info()?></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PID:&nbsp;<span name="procinfo_pid" id="procinfo_pid"><?=get_process_pid()?></span></td>
