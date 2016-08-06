@@ -134,12 +134,6 @@ function get_version_ext() {
     return ($result[0]);
 }
 
-if (is_ajax()) {
-    $versioninfo['plex'] = get_version_plex();
-    $versioninfo['ext'] = get_version_ext();
-    render_ajax($versioninfo);
-}
-
 function get_process_info() {
     global $pidfile;
     if (exec("ps acx | grep -f $pidfile")) { $state = '<a style=" background-color: #00ff00; ">&nbsp;&nbsp;<b>'.gettext("running").'</b>&nbsp;&nbsp;</a>'; }
@@ -154,9 +148,11 @@ function get_process_pid() {
 }
 
 if (is_ajax()) {
-    $procinfo['info'] = get_process_info();
-    $procinfo['pid'] = get_process_pid();
-    render_ajax($procinfo);
+    $getinfo['info'] = get_process_info();
+    $getinfo['pid'] = get_process_pid();
+    $getinfo['plex'] = get_version_plex();
+    $getinfo['ext'] = get_version_ext();
+    render_ajax($getinfo);
 }
 
 bindtextdomain("nas4free", $textdomain);
@@ -167,10 +163,10 @@ bindtextdomain("nas4free", $textdomain_plex);
 $(document).ready(function(){
     var gui = new GUI;
     gui.recall(0, 2000, 'plex-gui.php', null, function(data) {
-        $('#procinfo').html(data.info);
-        $('#procinfo_pid').html(data.pid);
-        $('#versioninfo').html(data.plex);
-        $('#versioninfo_ext').html(data.ext);
+        $('#getinfo').html(data.info);
+        $('#getinfo_pid').html(data.pid);
+        $('#getinfo_plex').html(data.plex);
+        $('#getinfo_ext').html(data.ext);
     });
 });
 //]]>
@@ -189,15 +185,15 @@ $(document).ready(function(){
                 <?php html_text("installation_directory", gettext("Installation directory"), sprintf(gettext("The extension is installed in %s"), $rootfolder));?>
                 <tr>
                     <td class="vncellt"><?=gettext("Plex version");?></td>
-                    <td class="vtable"><span name="versioninfo" id="versioninfo"><?=get_version_plex()?></span></td>
+                    <td class="vtable"><span name="getinfo_plex" id="getinfo_plex"><?=get_version_plex()?></span></td>
                 </tr>
                 <tr>
                     <td class="vncellt"><?=gettext("Extension version");?></td>
-                    <td class="vtable"><span name="versioninfo_ext" id="versioninfo_ext"><?=get_version_ext()?></span></td>
+                    <td class="vtable"><span name="getinfo_ext" id="getinfo_ext"><?=get_version_ext()?></span></td>
                 </tr>
                 <tr>
                     <td class="vncellt"><?=gettext("Status");?></td>
-                    <td class="vtable"><span name="procinfo" id="procinfo"><?=get_process_info()?></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PID:&nbsp;<span name="procinfo_pid" id="procinfo_pid"><?=get_process_pid()?></span></td>
+                    <td class="vtable"><span name="getinfo" id="getinfo"><?=get_process_info()?></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PID:&nbsp;<span name="getinfo_pid" id="getinfo_pid"><?=get_process_pid()?></span></td>
                 </tr>
                 <?php
                     $a_interface = get_interface_list();
