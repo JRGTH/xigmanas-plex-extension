@@ -1,9 +1,9 @@
-﻿////////////////////////////////
-//Extension Plex Media Server//
-//////////////////////////////
-
+﻿===============================
+= Extension Plex Media Server =
+===============================
 Version    Description
 
+4.1.031....Added release notes link and updated gui
 4.1.030....Added product version auto refresh, added release notes
 4.1.029....Updated readme files
 4.1.028....First Public Release

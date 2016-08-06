@@ -106,8 +106,8 @@ if ($_POST) {
         mwexec("/usr/local/sbin/plexinit -t", true);
         mwexec("/usr/local/sbin/plexinit -p && rm -f {$pidfile}", true);
         mwexec("pkg delete -y plexmediaserver && pkg delete -y compat9x-amd64", true);
-        if (isset($_POST['plexdata'])) { $uninstall_cmd = "rm -Rf {$rootfolder}/backup; rm -Rf {$rootfolder}/gui; rm -Rf {$rootfolder}/gui-off;  rm -Rf {$rootfolder}/locale-plex; rm -Rf {$rootfolder}/plexdata; rm -Rf {$rootfolder}/system; rm {$rootfolder}/plexinit; rm {$rootfolder}/README; rm {$rootfolder}/version"; }
-        else { $uninstall_cmd = "rm -Rf {$rootfolder}/backup; rm -Rf {$rootfolder}/gui; rm -Rf {$rootfolder}/gui-off;  rm -Rf {$rootfolder}/locale-plex; rm -Rf {$rootfolder}/system; rm {$rootfolder}/plexinit; rm {$rootfolder}/README; rm {$rootfolder}/version"; }
+        if (isset($_POST['plexdata'])) { $uninstall_cmd = "rm -Rf {$rootfolder}/backup; rm -Rf {$rootfolder}/gui; rm -Rf {$rootfolder}/gui-off;  rm -Rf {$rootfolder}/locale-plex; rm -Rf {$rootfolder}/plexdata; rm -Rf {$rootfolder}/system; rm {$rootfolder}/plexinit; rm {$rootfolder}/README; rm {$rootfolder}/release_notes; rm {$rootfolder}/version"; }
+        else { $uninstall_cmd = "rm -Rf {$rootfolder}/backup; rm -Rf {$rootfolder}/gui; rm -Rf {$rootfolder}/gui-off;  rm -Rf {$rootfolder}/locale-plex; rm -Rf {$rootfolder}/system; rm {$rootfolder}/plexinit; rm {$rootfolder}/README; rm {$rootfolder}/release_notes; rm {$rootfolder}/version"; }
         mwexec($uninstall_cmd, true);
         if (is_link("/usr/local/share/plexmediaserver")) mwexec("rm /usr/local/share/plexmediaserver", true);
         if (is_link("/var/cache/pkg")) mwexec("rm /var/cache/pkg", true);
@@ -218,6 +218,7 @@ $(document).ready(function(){
             </div>
             <div id="remarks">
                 <?php html_remark("note", gettext("Note"), sprintf(gettext("Use the %s button to create an archive.tar of the plexdata folder."), gettext("Backup")));?>
+				<?="<small><a href='https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/master/plex/release_notes' target='_blank'>".gettext("Release Notes")."</a></small>";?>
             </div>
             <table width="100%" border="0" cellpadding="6" cellspacing="0">
                 <?php html_separator();?>
