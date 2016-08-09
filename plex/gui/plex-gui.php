@@ -58,6 +58,11 @@ else {
 }
 if (is_file("{$rootfolder}/postinit")) unlink("{$rootfolder}/postinit");
 
+// Retrieve IP@.
+$ipaddr = get_ipaddr($config['interfaces']['lan']['if']);
+$url = htmlspecialchars("http://{$ipaddr}:32400/web");
+$ipurl = "<a href='{$url}' target='_blank'>{$url}</a>";
+
 if ($_POST) {
     if (isset($_POST['start']) && $_POST['start']) {
         $return_val = mwexec("/usr/local/sbin/plexinit -s", true);
@@ -195,15 +200,7 @@ $(document).ready(function(){
                     <td class="vncellt"><?=gettext("Status");?></td>
                     <td class="vtable"><span name="getinfo" id="getinfo"><?=get_process_info()?></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PID:&nbsp;<span name="getinfo_pid" id="getinfo_pid"><?=get_process_pid()?></span></td>
                 </tr>
-                <?php
-                    $a_interface = get_interface_list();
-                    $pconfig['if'] = key($a_interface);
-                    $if = get_ifname($pconfig['if']);
-                    $ipaddr = get_ipaddr($if);
-                    $url = htmlspecialchars("http://{$ipaddr}:32400/web");
-                    $text = "<a href='{$url}' target='_blank'>{$url}</a>";
-                    html_text("url", gettext("WebGUI")." ".gettext("URL"), $text);
-                ?>
+                <?php html_text("url", gettext("WebGUI")." ".gettext("URL"), $ipurl);?>
             </table>
             <div id="submit">
                 <input name="start" type="submit" class="formbtn" title="<?=gettext("Start Plex Media Server");?>" value="<?=gettext("Start");?>" />
