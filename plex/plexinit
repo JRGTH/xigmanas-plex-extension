@@ -43,7 +43,7 @@ update_freebsdconf()
 {
     # Replace old FreeBSD.conf to fetch latest packages.
     if [ -f /etc/pkg/FreeBSD.conf ]; then 
-        if /bin/cat "/etc/pkg/FreeBSD.conf" | grep "quarterly" >/dev/null 2>&1; then
+        if /bin/cat "/etc/pkg/FreeBSD.conf" | grep -q "quarterly"; then
             /usr/bin/sed -e "s=quarterly=latest=" /etc/pkg/FreeBSD.conf > /etc/pkg/FreeBSD.conf~
             /bin/mv /etc/pkg/FreeBSD.conf~ /etc/pkg/FreeBSD.conf || error_notify "Error: A problem has occurred while renaming file."
         fi
@@ -160,6 +160,7 @@ platform_check()
         pkg_symlinkdir
         compat9x_symlinkdir
         plex_symlinkdir
+        plex_rcd_link
     fi
 }
 
@@ -184,8 +185,15 @@ require_once("functions.inc");
 ?>
 EOF
         # Execute temporary php script.
-        if [ "${OBI_INSTALL}" != "ON" ]; then 
-            /usr/local/bin/php-cgi -f ${CWDIR}/postinit && rm ${CWDIR}/postinit  
+        if [ "${OBI_INSTALL}" != "ON" ]; then
+            /usr/local/bin/php-cgi -f ${CWDIR}/postinit && rm ${CWDIR}/postinit
+            # To set enable for the GUI because at the installation Plex is started by default.
+            /bin/mkdir -p ${CWDIR}/conf
+            /usr/bin/touch ${CWDIR}/conf/enabled
+        else 
+            # To set enable for the GUI because at the installation Plex is started by default.
+            /bin/mkdir -p ${CWDIR}/conf
+            /usr/bin/touch ${CWDIR}/conf/enabled
         fi
     fi
 }
@@ -211,14 +219,17 @@ gui_disable()
 {
     # Disable GUI if -t option specified.
     if [ -d ${CWDIR}/gui ]; then
-        /bin/rm -f /usr/local/www/plex-gui.php && /bin/rm -Rf /usr/local/www/ext/plex-gui
+        /bin/rm -f /usr/local/www/plex-gui.php
+        /bin/rm -Rf /usr/local/www/ext/plex-gui
+        /bin/rm -f /usr/local/share/locale-plex
         /bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming folder."
     fi
 
-    # Remove empty ext folder to prevent null "Extensions" tab and unlink locale-plex.
-    if ! [ "$(ls -A /usr/local/www/ext)" ]; then
-        /bin/rm -r /usr/local/www/ext
-        /bin/rm -f /usr/local/share/locale-plex
+    # Remove empty ext folder to prevent null "Extensions" tab.
+    if [ -d "/usr/local/www/ext" ]; then
+        if ! [ "$(ls -A /usr/local/www/ext)" ]; then
+            /bin/rm -r /usr/local/www/ext
+        fi
     fi
 }
 
@@ -298,33 +309,43 @@ plex_symlinkdir()
     fi
 }
 
-plex_rcparamstart()
+plex_rcd_link()
 {
-    # Plex Media Server rc parameters.
-    if ! /bin/cat "/etc/rc.conf" | grep "${CMDNAME}_enable=\"NO\"" >/dev/null 2>&1; then
-        /usr/sbin/sysrc ${CMDNAME}_enable="NO" >/dev/null 2>&1
-    fi
-    if ! /bin/cat "/etc/rc.conf" | grep "${CMDNAME}_support_path=\"${SUPPORTPATH}\"" >/dev/null 2>&1; then
-        /usr/sbin/sysrc ${CMDNAME}_support_path="${SUPPORTPATH}" >/dev/null 2>&1
-    fi
-    if ! /bin/cat "/etc/rc.conf" | grep "${CMDNAME}_maxplugins=\"6\"" >/dev/null 2>&1; then
-        /usr/sbin/sysrc ${CMDNAME}_maxplugins="6" >/dev/null 2>&1
-    fi
-
-    # Link plexinit to /usr/local/sbin.
-    if [ ! -f /usr/local/sbin/plexinit ]; then
-        /bin/ln -fs ${CWDIR}/plexinit /usr/local/sbin
-    fi
-
     # Restore current plex rcd if embedded.
     if [ ${PRDPLATFORM} == "x64-embedded" ]; then
         if [ -f ${CWDIR}/system/rc.d/${CMDNAME} ]; then
             /bin/cp ${CWDIR}/system/rc.d/${CMDNAME} ${RCDPATH} || error_notify "Error: A problem has occurred while copying file."
         fi
     fi
+}
+
+ext_enable_disable()
+{
+    # Start plex extension if gui enabled otherwise start plex cli version.
+    if [ -d ${CWDIR}/gui ]; then
+        if [ -f ${CWDIR}/conf/enabled ]; then
+            break
+        else
+            exit
+        fi
+    fi
+}
+
+plex_rcparamstart()
+{
+    # Plex Media Server rc parameters.
+    if ! /bin/cat "/etc/rc.conf" | grep -q "${CMDNAME}_enable=\"NO\""; then
+        /usr/sbin/sysrc ${CMDNAME}_enable="NO" >/dev/null 2>&1
+    fi
+    if ! /bin/cat "/etc/rc.conf" | grep -q "${CMDNAME}_support_path=\"${SUPPORTPATH}\""; then
+        /usr/sbin/sysrc ${CMDNAME}_support_path="${SUPPORTPATH}" >/dev/null 2>&1
+    fi
+    if ! /bin/cat "/etc/rc.conf" | grep -q "${CMDNAME}_maxplugins=\"6\""; then
+        /usr/sbin/sysrc ${CMDNAME}_maxplugins="6" >/dev/null 2>&1
+    fi
 
     # Start Plex Media Server.
-    if ! /usr/bin/top | grep "plex" >/dev/null 2>&1; then
+    if ! /bin/ps -acx | grep -q "Plex \Media \Server"; then
         service ${CMDNAME} onestart 2> /dev/null || ${PLEXRCD} onestart
     fi
     # Logg on startup success.
@@ -344,12 +365,18 @@ plex_init()
         echo "Unsupported version!"; exit 1
     fi
 
+    # Link plexinit to /usr/local/sbin.
+    if [ ! -f /usr/local/sbin/plexinit ]; then
+        /bin/ln -fs ${CWDIR}/plexinit /usr/local/sbin
+    fi
+
     # Function calls.
     platform_check
     ext_initial_download
     plex_initial_download
     plex_usergroup
     product_check
+    ext_enable_disable
     plex_rcparamstart
 }
 
