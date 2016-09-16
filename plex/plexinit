@@ -45,7 +45,7 @@ update_freebsdconf()
     if [ -f /etc/pkg/FreeBSD.conf ]; then 
         if /bin/cat "/etc/pkg/FreeBSD.conf" | grep -q "quarterly"; then
             /usr/bin/sed -e "s=quarterly=latest=" /etc/pkg/FreeBSD.conf > /etc/pkg/FreeBSD.conf~
-            /bin/mv /etc/pkg/FreeBSD.conf~ /etc/pkg/FreeBSD.conf || error_notify "Error: A problem has occurred while renaming file."
+            /bin/mv /etc/pkg/FreeBSD.conf~ /etc/pkg/FreeBSD.conf || error_notify "Error: A problem has occurred while renaming conf file."
         fi
     fi
 }
@@ -57,14 +57,14 @@ plex_initial_download()
 
     # Check if Plex already exist.
     if [ ! -f ${PLEXPATH}/Plex_Media_Server ]; then
-        # Fetch and install latest Plex pkg.
+        # Fetch and install latest plex package.
         pkg install -y ${PRDNAME}
     fi
 
     # Backup latest plex rcd after install if embedded.
     if [ ${PRDPLATFORM} == "x64-embedded" ]; then
         if [ -f ${PLEXRCD} ]; then
-            /bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying file."
+            /bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying rcd file."
         fi
     fi
 }
@@ -74,13 +74,24 @@ pkg_upgrade()
     # Update FreeBSD.conf file.
     update_freebsdconf
 
-    # Check and upgrade latest Plex pkg.
+    # Set plex current version variable.
+    PLEXVERSION=`pkg info -I plexmediaserver | cut -d' ' -f1 | cut -d- -f2 | tr -d .`
+
+    # Check and upgrade plex and compat9x packages.
     pkg upgrade -y ${COMPATPKG} ${PRDNAME}
+
+    # Set plex new version variable.
+    PLEXNEWVERSION=`pkg info -I plexmediaserver | cut -d' ' -f1 | cut -d- -f2 | tr -d .`
+
+    # Restart plex if version upgraded.
+    if [ ${PLEXNEWVERSION} -gt ${PLEXVERSION} ]; then
+        service ${CMDNAME} onerestart 2> /dev/null || ${PLEXRCD} onerestart
+    fi
 
     # Backup latest plex rcd after upgrade if embedded.
     if [ ${PRDPLATFORM} == "x64-embedded" ]; then
         if [ -f ${PLEXRCD} ]; then
-            /bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying file."
+            /bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying rcd file."
         fi
     fi
 
@@ -96,14 +107,14 @@ extenstion_upgrade()
 {
     # Create temporary folder for the upgrade process.
     /bin/mkdir -p ${CWDIR}/update
-    /usr/bin/fetch -o ${CWDIR}/update https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/master/plex/version || error_notify "Error: A problem has occurred while fetching version file."
+    /usr/bin/fetch -q -o ${CWDIR}/update https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/master/plex/version || error_notify "Error: A problem has occurred while fetching version file."
 
     # Compare version files and fetch latest package if available.
     if [ -f ${CWDIR}/update/version ]; then
         UPDATEVER=`cat ${CWDIR}/update/version | tr -d .`
         CURRENTVER=`cat ${CWDIR}/version | tr -d .`
         if [ ${UPDATEVER} -gt ${CURRENTVER} ]; then
-            /usr/bin/fetch -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip || error_notify "Error: A problem has occurred while fetching extension package."
+            /usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip || error_notify "Error: A problem has occurred while fetching extension package."
             /usr/bin/tar -xf ${CWDIR}/update/master.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
             /bin/chmod +x ${CWDIR}/update/plex/plexinit
             /bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
@@ -114,7 +125,7 @@ extenstion_upgrade()
             # If gui disabled then remove old folder and rename new, otherwise copy new gui files.
             if [ -d ${CWDIR}/gui-off ]; then
                 /bin/rm -R ${CWDIR}/gui-off
-                /bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming folder."
+                /bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming gui folder."
             else
                 /bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
             fi
@@ -130,7 +141,7 @@ ext_initial_download()
     # Always ensure the version file is present, otherwise update the extension files on startup.
     if ! [ -f ${CWDIR}/version ]; then
         /bin/mkdir -p ${CWDIR}/update
-        /usr/bin/fetch -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip
+        /usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip || error_notify "Error: A problem has occurred while fetching extension package."
         /usr/bin/tar -xf ${CWDIR}/update/master.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
         /bin/chmod +x ${CWDIR}/update/plex/plexinit
         /bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
@@ -210,7 +221,7 @@ gui_enable()
 {
     #  Check and copy the GUI files.
     if [ -d ${CWDIR}/gui-off ]; then
-        /bin/mv ${CWDIR}/gui-off ${CWDIR}/gui || error_notify "Error: A problem has occurred while renaming folder."
+        /bin/mv ${CWDIR}/gui-off ${CWDIR}/gui || error_notify "Error: A problem has occurred while renaming gui folder."
         /bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
     fi
 }
@@ -222,7 +233,7 @@ gui_disable()
         /bin/rm -f /usr/local/www/plex-gui.php
         /bin/rm -Rf /usr/local/www/ext/plex-gui
         /bin/rm -f /usr/local/share/locale-plex
-        /bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming folder."
+        /bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming gui folder."
     fi
 
     # Remove empty ext folder to prevent null "Extensions" tab.
@@ -246,7 +257,7 @@ plex_usergroup()
 
 pkg_symlinkdir()
 {
-    # Check and create/relink required symlinks/dirs for pkg cache and metadata.
+    # Check and create/relink required symlinks/dirs for package cache and metadata.
     if [ -d ${PKGCACHE} ]; then
         /bin/rm -r ${PKGCACHE}
         /bin/mkdir -p ${CWDIR}/system/pkg/pkgcache
@@ -314,7 +325,7 @@ plex_rcd_link()
     # Restore current plex rcd if embedded.
     if [ ${PRDPLATFORM} == "x64-embedded" ]; then
         if [ -f ${CWDIR}/system/rc.d/${CMDNAME} ]; then
-            /bin/cp ${CWDIR}/system/rc.d/${CMDNAME} ${RCDPATH} || error_notify "Error: A problem has occurred while copying file."
+            /bin/cp ${CWDIR}/system/rc.d/${CMDNAME} ${RCDPATH} || error_notify "Error: A problem has occurred while copying rcd file."
         fi
     fi
 }
@@ -393,7 +404,7 @@ while getopts ":otgsprvuh" option; do
         echo "        -g  Enables the addon GUI."
         echo "        -t  Disable the addon GUI."
         echo "        -h  Display this help message."; exit 0 ;;
-        [o]) OBI_INSTALL="ON";; #AFS: To prevent nested PHP-CGI call for installation with OBI.
+        [o]) OBI_INSTALL="ON";; # To prevent nested PHP-CGI call for installation with OBI.
         [g]) gui_enable; exit 0 ;; # For enable the addon gui.
         [t]) gui_disable; exit 0 ;; # For disable the addon gui.
         [s]) service ${CMDNAME} onestart 2> /dev/null || ${PLEXRCD} onestart; exit 0 ;;

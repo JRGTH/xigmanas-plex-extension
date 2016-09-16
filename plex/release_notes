@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.1.037....Added auto restart on upgrades and minor fixes
 4.1.036....Overall consistency improvements and fixes
 4.1.035....Added enable checkbox and customizable backup directory
 4.1.034....Fix IP address not always displayed
