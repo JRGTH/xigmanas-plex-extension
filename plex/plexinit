@@ -64,9 +64,7 @@ plex_initial_download()
 
     # Backup latest plex rcd after install if embedded.
     if [ ${PRDPLATFORM} == "x64-embedded" ]; then
-        if  [ ${UNIONFS} -eq 0 ]; then
-            break
-        else
+        if  [ ${UNIONFS} -eq 1 ]; then
             if [ -f ${PLEXRCD} ]; then
                 /bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying rcd file."
             fi
@@ -95,9 +93,7 @@ pkg_upgrade()
 
     # Backup latest plex rcd after upgrade if embedded.
     if [ ${PRDPLATFORM} == "x64-embedded" ]; then
-        if  [ ${UNIONFS} -eq 0 ]; then
-            break
-        else
+        if  [ ${UNIONFS} -eq 1 ]; then
             if [ -f ${PLEXRCD} ]; then
                 /bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying rcd file."
             fi
@@ -177,9 +173,7 @@ platform_check()
 {
     # Check for working platform.
     if [ ${PRDPLATFORM} == "x64-embedded" ]; then
-        if  [ ${UNIONFS} -eq 0 ]; then
-            break
-        else
+        if  [ ${UNIONFS} -eq 1 ]; then
             pkg_symlinkdir
             compat9x_symlinkdir
             plex_symlinkdir
@@ -337,9 +331,7 @@ plex_rcd_link()
 {
     # Restore current plex rcd if embedded.
     if [ ${PRDPLATFORM} == "x64-embedded" ]; then
-        if  [ ${UNIONFS} -eq 0 ]; then
-            break
-        else
+        if  [ ${UNIONFS} -eq 1 ]; then
             if [ -f ${CWDIR}/system/rc.d/${CMDNAME} ]; then
                 /bin/cp ${CWDIR}/system/rc.d/${CMDNAME} ${RCDPATH} || error_notify "Error: A problem has occurred while copying rcd file."
             fi
