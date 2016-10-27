@@ -173,7 +173,9 @@ product_check()
 platform_check()
 {
     # Check for working platform.
-    if [ ${PRDPLATFORM} == "x64-embedded" ]; then
+    if [ ${PRDPLATFORM} == "x64-embedded" ] \
+        || [ ${PRDPLATFORM} == "x64-liveCD" ] \
+            || [ ${PRDPLATFORM} == "x64-liveUSB" ]; then
         # Check if the system is running unionfs for /usr/local(above).
         if  [ ${UNIONFS} -eq 1 ]; then
             pkg_symlinkdir
