@@ -119,7 +119,7 @@ if ($_POST) {
         mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
         mwexec("{$rootfolder}/plexinit -t", true);
         mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
-        mwexec("pkg delete -y plexmediaserver && pkg delete -y compat9x-amd64 && pkg delete -y compat10x-amd64", true);
+        mwexec("pkg delete -y plexmediaserver", true);
         if (isset($_POST['plexdata'])) { $uninstall_cmd = "rm -Rf '{$rootfolder}/backup' '{$rootfolder}/conf' '{$rootfolder}/gui' '{$rootfolder}/gui-off' '{$rootfolder}/locale-plex' '{$rootfolder}/plexdata' '{$rootfolder}/system' '{$rootfolder}/plexinit' '{$rootfolder}/README' '{$rootfolder}/release_notes' '{$rootfolder}/version'"; }
         else { $uninstall_cmd = "rm -Rf '{$rootfolder}/backup' '{$rootfolder}/conf' '{$rootfolder}/gui' '{$rootfolder}/gui-off' '{$rootfolder}/locale-plex' '{$rootfolder}/system' '{$rootfolder}/plexinit' '{$rootfolder}/README' '{$rootfolder}/release_notes' '{$rootfolder}/version'"; }
         mwexec($uninstall_cmd, true);

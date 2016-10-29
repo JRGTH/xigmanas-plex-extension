@@ -290,7 +290,7 @@ pkg_symlinkdir()
 
 compat_symlinkdir()
 {
-    # Name the old compat9x directory to compat on newer FreeBSD releases.
+    # Name the old compat9x directory to compat.
     COMPATDIR="compat9x"
     if [ ! -d ${CWDIR}/system/${COMPATDIR} ]; then
         if [ ${PRDVERSION} -ge "11" ]; then

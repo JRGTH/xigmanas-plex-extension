@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.1.043....Minor fix to don't remove dependencies
 4.1.042....Fix for live media platforms
 4.1.041....Minor fix on uninstall
 4.1.040....Minor updates and revision
