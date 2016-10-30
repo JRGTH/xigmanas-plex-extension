@@ -10,4 +10,4 @@ Credits:
 	Andreas Schmidhuber (crestAT) GUI complements.
 	J.M. Rivera (JRGTH) Base script.
 
-	Additional information and description in the NAS4Free forum: http://forums.nas4free.org/viewtopic.php?f=71&t=11184#p69861
+	Additional information and description in the NAS4Free forum: <a href="http://forums.nas4free.org/viewtopic.php?f=71&t=11184#p69861"</a>
