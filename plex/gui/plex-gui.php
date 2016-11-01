@@ -46,9 +46,16 @@ $pidfile = "/var/run/plex/plex.pid";
 if ( is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
     for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) { if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) break; ++$i; }
 }
-$rootfolder = dirname($config['rc']['postinit']['cmd'][$i]);
-$versionfile = "{$rootfolder}/version";
-$enabledfile = "{$rootfolder}/conf/enabled";
+//$rootfolder = dirname($config['rc']['postinit']['cmd'][$i]);
+$confdir = "/var/etc/plexconf";
+$cwdir = exec("/bin/cat {$confdir}/conf/install_path");
+$rootfolder = $cwdir;
+
+//$versionfile = "{$rootfolder}/version";
+$versionfile = "{$confdir}/conf/version";
+//$enabledfile = "{$rootfolder}/conf/enabled";
+$enabledfile = "{$confdir}/conf/enabled";
+
 if ($rootfolder == "") $input_errors[] = gettext("Extension installed with fault");
 else {
 // Initialize locales.
@@ -65,7 +72,8 @@ if (!file_exists("{$rootfolder}/conf")) {
 
 if (is_file("{$rootfolder}/postinit")) unlink("{$rootfolder}/postinit");
 if (!is_file("{$rootfolder}/conf/backup_path")) exec("echo -e {$rootfolder}/backup > {$rootfolder}/conf/backup_path");
-$backup_path = exec("/bin/cat {$rootfolder}/conf/backup_path");
+//$backup_path = exec("/bin/cat {$rootfolder}/conf/backup_path");
+$backup_path = exec("/bin/cat {$confdir}/conf/backup_path");
 
 // Retrieve IP@.
 $ipaddr = get_ipaddr($config['interfaces']['lan']['if']);
@@ -106,6 +114,7 @@ if ($_POST) {
     if (isset($_POST['remove']) && $_POST['remove']) {
         bindtextdomain("nas4free", $textdomain);
         if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
+        if (is_dir($confdir)) mwexec("rm -rf {$confdir}", true);
         mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
         mwexec("mv {$rootfolder}/gui {$rootfolder}/gui-off", true);
         mwexec("{$rootfolder}/plexinit -t", true);
@@ -116,6 +125,7 @@ if ($_POST) {
     if (isset($_POST['uninstall']) && $_POST['uninstall']) {
         bindtextdomain("nas4free", $textdomain);
         if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
+        if (is_dir($confdir)) mwexec("rm -rf {$confdir}", true);
         mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
         mwexec("{$rootfolder}/plexinit -t", true);
         mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);

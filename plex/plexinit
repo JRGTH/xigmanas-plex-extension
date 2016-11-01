@@ -19,6 +19,7 @@ UNIONFS=`mount -t unionfs | grep "above" | grep -q "/usr/local"; echo $?`
 APPNAME="Plex Extension"
 PKGCACHE="/var/cache/pkg"
 PKGMETA="/var/db/pkg"
+PLEXCONF="/var/etc/plexconf"
 COMPATPATH1="/usr/local/lib/compat"
 COMPATPATH2="/usr/local/lib32/compat"
 COMPATPATH3="/usr/local/libdata/ldconfig"
@@ -192,20 +193,51 @@ postinit_cmd()
     if ! /usr/bin/grep -q ${CWDIR}/plexinit ${CONFIG}; then
         /usr/bin/touch ${CWDIR}/postinit || error_notify "Error: A problem has occurred while creating postinit file."
         /bin/chmod +x ${CWDIR}/postinit
-        /bin/cat << EOF > ${CWDIR}/postinit
+        if [ ! ${PRDVERSION} -ge "11" ]; then
+            # Generate php script tor NAS4Free 10.x versions.
+            /bin/cat << EOF > ${CWDIR}/postinit
 <?php
-\$cmd = dirname(__FILE__)."/plexinit";
 require_once("config.inc");
 require_once("functions.inc");
-        \$i =0;
-        if ( is_array(\$config['rc']['postinit'] ) && is_array( \$config['rc']['postinit']['cmd'] ) ) {
-            for (\$i; \$i < count(\$config['rc']['postinit']['cmd']);) {
-                if (preg_match('/plexinit/', \$config['rc']['postinit']['cmd'][\$i])) break; ++\$i; }
-        }
-        \$config['rc']['postinit']['cmd'][\$i] = \$config['cmd']."\$cmd";
-        write_config();
+\$cmd = dirname(__FILE__)."/plexinit";
+    \$i =0;
+    if ( is_array(\$config['rc']['postinit'] ) && is_array( \$config['rc']['postinit']['cmd'] ) ) {
+        for (\$i; \$i < count(\$config['rc']['postinit']['cmd']);) {
+            if (preg_match('/plexinit/', \$config['rc']['postinit']['cmd'][\$i])) break; ++\$i; }
+    }
+    \$config['rc']['postinit']['cmd'][\$i] = \$config['cmd']."\$cmd";
+    write_config();
 ?>
 EOF
+        else
+            # Generate php script tor NAS4Free 11.x versions.
+            /bin/cat << EOF > ${CWDIR}/postinit
+<?php
+require_once("config.inc");
+require_once("functions.inc");
+\$cmd = dirname(__FILE__)."/plexinit";
+\$name = "Plex Extension";
+\$comment = "Plex Media Server";
+    if (isset(\$config['rc']['param'])) {
+        \$add_rc_for_plex = (false === array_search_ex(\$name, \$config['rc']['param'], 'name'));
+    } else {
+    \$add_rc_for_plex = true;
+    }
+    if(\$add_rc_for_plex) {
+        \$r_param = [];
+        \$r_param['uuid'] = uuid();
+        \$r_param['name'] = \$name;
+        \$r_param['value'] = \$cmd;
+        \$r_param['comment'] = \$comment;
+        \$r_param['typeid'] = '2';
+        \$r_param['enable'] = true;
+        \$config['rc']['param'][] = \$r_param;
+        write_config();
+    }
+?>
+EOF
+        fi
+
         # Execute temporary php script.
         if [ "${OBI_INSTALL}" != "ON" ]; then
             /usr/local/bin/php-cgi -f ${CWDIR}/postinit && rm ${CWDIR}/postinit
@@ -222,16 +254,26 @@ EOF
 
 gui_start()
 {
-    # Check and copy the GUI files.
+    # Initialize the extension GUI.
     if [ -d ${CWDIR}/gui ]; then
+
+        # Store the installation path and link conf.
+        echo ${CWDIR} > ${CWDIR}/conf/install_path
+        /bin/mkdir -p ${PLEXCONF}
+        /bin/ln -Ffhs ${CWDIR}/version ${CWDIR}/conf/
+        /bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONF}/
+
+        # Copy the GUI files.
         /bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
     fi
 }
 
 gui_enable()
 {
-    #  Check and copy the GUI files.
+    #  Relink conf and copy the GUI files.
     if [ -d ${CWDIR}/gui-off ]; then
+        /bin/mkdir -p ${PLEXCONF}
+        /bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONF}/
         /bin/mv ${CWDIR}/gui-off ${CWDIR}/gui || error_notify "Error: A problem has occurred while renaming gui folder."
         /bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
     fi
@@ -244,6 +286,7 @@ gui_disable()
         /bin/rm -f /usr/local/www/plex-gui.php
         /bin/rm -Rf /usr/local/www/ext/plex-gui
         /bin/rm -f /usr/local/share/locale-plex
+        /bin/rm -rf ${PLEXCONF}
         /bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming gui folder."
     fi
 
