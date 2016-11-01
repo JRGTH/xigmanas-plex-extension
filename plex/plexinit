@@ -257,6 +257,11 @@ gui_start()
     # Initialize the extension GUI.
     if [ -d ${CWDIR}/gui ]; then
 
+        # Always ensure the conf directory exist.
+        if [ ! -d ${CWDIR}/conf ]; then
+            /bin/mkdir -p ${CWDIR}/conf
+        fi
+
         # Store the installation path and link conf.
         echo ${CWDIR} > ${CWDIR}/conf/install_path
         /bin/mkdir -p ${PLEXCONF}
