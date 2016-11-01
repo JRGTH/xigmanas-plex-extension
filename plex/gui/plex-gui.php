@@ -46,7 +46,16 @@ $pidfile = "/var/run/plex/plex.pid";
 if ( is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
     for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) { if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) break; ++$i; }
 }
-$rootfolder = dirname($config['rc']['postinit']['cmd'][$i]);
+//$rootfolder = dirname($config['rc']['postinit']['cmd'][$i]);
+$confdir = "/var/etc/plexconf";
+$cwdir = exec("/bin/cat {$confdir}/conf/install_path");
+$rootfolder = $cwdir;
+
+//$versionfile = "{$rootfolder}/version";
+$versionfile = "{$confdir}/conf/version";
+//$enabledfile = "{$rootfolder}/conf/enabled";
+$enabledfile = "{$confdir}/conf/enabled";
+
 if ($rootfolder == "") $input_errors[] = gettext("Extension installed with fault");
 else {
 // Initialize locales.
@@ -55,48 +64,60 @@ else {
     if (!is_link($textdomain_plex)) { mwexec("ln -s {$rootfolder}/locale-plex {$textdomain_plex}", true); }
     bindtextdomain("nas4free", $textdomain_plex);
 }
-if (is_file("{$rootfolder}/postinit")) unlink("{$rootfolder}/postinit");
 
-$plex_version = exec("/usr/local/sbin/plexinit -v");
-$plexext_version = exec("/bin/cat {$rootfolder}/version");
+// Always ensure the conf directory exist.
+if (!file_exists("{$rootfolder}/conf")) {
+    mkdir("{$rootfolder}/conf", 0755, true);
+}
+
+if (is_file("{$rootfolder}/postinit")) unlink("{$rootfolder}/postinit");
+if (!is_file("{$rootfolder}/conf/backup_path")) exec("echo -e {$rootfolder}/backup > {$rootfolder}/conf/backup_path");
+//$backup_path = exec("/bin/cat {$rootfolder}/conf/backup_path");
+$backup_path = exec("/bin/cat {$confdir}/conf/backup_path");
+
+// Retrieve IP@.
+$ipaddr = get_ipaddr($config['interfaces']['lan']['if']);
+$url = htmlspecialchars("http://{$ipaddr}:32400/web");
+$ipurl = "<a href='{$url}' target='_blank'>{$url}</a>";
 
 if ($_POST) {
     if (isset($_POST['start']) && $_POST['start']) {
-        $return_val = mwexec("/usr/local/sbin/plexinit -s", true);
+        $return_val = mwexec("{$rootfolder}/plexinit -s", true);
         if ($return_val == 0) { $savemsg .= gettext("Plex Media Server started successfully."); }
         else { $input_errors[] = gettext("Plex Media Server startup failed."); }
     }
 
     if (isset($_POST['stop']) && $_POST['stop']) {
-        $return_val = mwexec("/usr/local/sbin/plexinit -p && rm -f {$pidfile}", true);
+        $return_val = mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
         if ($return_val == 0) { $savemsg .= gettext("Plex Media Server stopped successfully."); }
         else { $input_errors[] = gettext("Plex Media Server stop failed."); }
     }
 
     if (isset($_POST['restart']) && $_POST['restart']) {
-        $return_val = mwexec("/usr/local/sbin/plexinit -r", true);
+        $return_val = mwexec("{$rootfolder}/plexinit -r", true);
         if ($return_val == 0) { $savemsg .= gettext("Plex Media Server restarted successfully."); }
         else { $input_errors[] = gettext("Plex Media Server restart failed."); }
     }
 
     if (isset($_POST['upgrade']) && $_POST['upgrade']) {
-        $return_val = mwexec("/usr/local/sbin/plexinit -u", true);
-        if ($return_val == 0) { $savemsg .= gettext("Upgrade command successfully executed, refresh page to view new version if available."); }
+        $return_val = mwexec("{$rootfolder}/plexinit -u", true);
+        if ($return_val == 0) { $savemsg .= gettext("Upgrade command successfully executed."); }
         else { $input_errors[] = gettext("An error has occurred during upgrade process."); }
     }
 
     if (isset($_POST['backup']) && $_POST['backup']) {
-        $return_val = mwexec("mkdir -p {$rootfolder}/backup && cd {$rootfolder} && tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar {$rootfolder}/backup", true);
-        if ($return_val == 0) { $savemsg .= gettext("Plexdata backup created successfully."); }
+        $return_val = mwexec("mkdir -p {$backup_path} && cd {$rootfolder} && tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar {$backup_path}", true);
+        if ($return_val == 0) { $savemsg .= gettext("Plexdata backup created successfully in {$backup_path}."); }
         else { $input_errors[] = gettext("Plexdata backup failed."); }
     }
 
     if (isset($_POST['remove']) && $_POST['remove']) {
         bindtextdomain("nas4free", $textdomain);
         if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
+        if (is_dir($confdir)) mwexec("rm -rf {$confdir}", true);
         mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
         mwexec("mv {$rootfolder}/gui {$rootfolder}/gui-off", true);
-        mwexec("/usr/local/sbin/plexinit -t", true);
+        mwexec("{$rootfolder}/plexinit -t", true);
         header("Location:index.php");
     }
 
@@ -104,12 +125,13 @@ if ($_POST) {
     if (isset($_POST['uninstall']) && $_POST['uninstall']) {
         bindtextdomain("nas4free", $textdomain);
         if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
+        if (is_dir($confdir)) mwexec("rm -rf {$confdir}", true);
         mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
-        mwexec("/usr/local/sbin/plexinit -t", true);
-        mwexec("/usr/local/sbin/plexinit -p && rm -f {$pidfile}", true);
-        mwexec("pkg delete -y plexmediaserver && pkg delete -y compat9x-amd64", true);
-        if (isset($_POST['plexdata'])) { $uninstall_cmd = "rm -Rf {$rootfolder}/backup; rm -Rf {$rootfolder}/gui; rm -Rf {$rootfolder}/gui-off;  rm -Rf {$rootfolder}/locale-plex; rm -Rf {$rootfolder}/plexdata; rm -Rf {$rootfolder}/system; rm {$rootfolder}/plexinit; rm {$rootfolder}/README; rm {$rootfolder}/version"; }
-        else { $uninstall_cmd = "rm -Rf {$rootfolder}/backup; rm -Rf {$rootfolder}/gui; rm -Rf {$rootfolder}/gui-off;  rm -Rf {$rootfolder}/locale-plex; rm -Rf {$rootfolder}/system; rm {$rootfolder}/plexinit; rm {$rootfolder}/README; rm {$rootfolder}/version"; }
+        mwexec("{$rootfolder}/plexinit -t", true);
+        mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
+        mwexec("pkg delete -y plexmediaserver", true);
+        if (isset($_POST['plexdata'])) { $uninstall_cmd = "rm -Rf '{$rootfolder}/backup' '{$rootfolder}/conf' '{$rootfolder}/gui' '{$rootfolder}/gui-off' '{$rootfolder}/locale-plex' '{$rootfolder}/plexdata' '{$rootfolder}/system' '{$rootfolder}/plexinit' '{$rootfolder}/README' '{$rootfolder}/release_notes' '{$rootfolder}/version'"; }
+        else { $uninstall_cmd = "rm -Rf '{$rootfolder}/backup' '{$rootfolder}/conf' '{$rootfolder}/gui' '{$rootfolder}/gui-off' '{$rootfolder}/locale-plex' '{$rootfolder}/system' '{$rootfolder}/plexinit' '{$rootfolder}/README' '{$rootfolder}/release_notes' '{$rootfolder}/version'"; }
         mwexec($uninstall_cmd, true);
         if (is_link("/usr/local/share/plexmediaserver")) mwexec("rm /usr/local/share/plexmediaserver", true);
         if (is_link("/var/cache/pkg")) mwexec("rm /var/cache/pkg", true);
@@ -123,6 +145,37 @@ if ($_POST) {
         write_config();
         header("Location:index.php");
     }
+
+    if (isset($_POST['save']) && $_POST['save']) {
+        // Ensure to have NO whitespace & trailing slash.
+        $backup_path = rtrim(trim($_POST['backup_path']),'/');
+        if ("{$backup_path}" == "") $backup_path = "{$rootfolder}/backup";
+        else exec("echo -e {$backup_path} > {$rootfolder}/conf/backup_path");
+        if (isset($_POST['enable'])) { 
+            touch($enabledfile);
+            mwexec("{$rootfolder}/plexinit", true);
+        }
+        else {
+            if (is_file($enabledfile)) unlink($enabledfile);
+            $return_val = mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
+            if ($return_val == 0) { $savemsg .= gettext("Plex Media Server stopped successfully."); }
+            else { $input_errors[] = gettext("Plex Media Server stop failed."); }
+        }
+    }
+}
+
+if (!is_file("{$rootfolder}/conf/backup_path")) exec("echo -e {$rootfolder}/backup > {$rootfolder}/conf/backup_path");
+$backup_path = exec("/bin/cat {$rootfolder}/conf/backup_path");
+
+function get_version_plex() {
+    exec("pkg info -I plexmediaserver", $result);
+    return ($result[0]);
+}
+
+function get_version_ext() {
+    global $versionfile;
+    exec("/bin/cat {$versionfile}", $result);
+    return ($result[0]);
 }
 
 function get_process_info() {
@@ -139,9 +192,11 @@ function get_process_pid() {
 }
 
 if (is_ajax()) {
-    $procinfo['info'] = get_process_info();
-    $procinfo['pid'] = get_process_pid();
-    render_ajax($procinfo);
+    $getinfo['info'] = get_process_info();
+    $getinfo['pid'] = get_process_pid();
+    $getinfo['plex'] = get_version_plex();
+    $getinfo['ext'] = get_version_ext();
+    render_ajax($getinfo);
 }
 
 bindtextdomain("nas4free", $textdomain);
@@ -152,8 +207,10 @@ bindtextdomain("nas4free", $textdomain_plex);
 $(document).ready(function(){
     var gui = new GUI;
     gui.recall(0, 2000, 'plex-gui.php', null, function(data) {
-        $('#procinfo').html(data.info);
-        $('#procinfo_pid').html(data.pid);
+        $('#getinfo').html(data.info);
+        $('#getinfo_pid').html(data.pid);
+        $('#getinfo_plex').html(data.plex);
+        $('#getinfo_ext').html(data.ext);
     });
 });
 //]]>
@@ -162,31 +219,45 @@ $(document).ready(function(){
 <?php include("ext/plex-gui/spinner.inc");?>
 <script src="ext/plex-gui/spin.min.js"></script>
 <!-- use: onsubmit="spinner()" within the form tag -->
+<script type="text/javascript">
+<!--
+function enable_change(enable_change) {
+    var endis = !(document.iform.enable.checked || enable_change);
+	document.iform.start.disabled = endis;
+	document.iform.stop.disabled = endis;
+	document.iform.restart.disabled = endis;
+	document.iform.upgrade.disabled = endis;
+	document.iform.backup.disabled = endis;
+	document.iform.backup_path.disabled = endis;
+	document.iform.backup_pathbrowsebtn.disabled = endis;
+}
+//-->
+</script>
 <form action="plex-gui.php" method="post" name="iform" id="iform" onsubmit="spinner()">
     <table width="100%" border="0" cellpadding="0" cellspacing="0">
         <tr><td class="tabcont">
             <?php if (!empty($input_errors)) print_input_errors($input_errors);?>
             <?php if (!empty($savemsg)) print_info_box($savemsg);?>
             <table width="100%" border="0" cellpadding="6" cellspacing="0">
-                <?php html_titleline("Plex ".gettext("Information"));?>
+                <?php html_titleline_checkbox("enable", gettext("Plex"), is_file($enabledfile), gettext("Enable"));?>
                 <?php html_text("installation_directory", gettext("Installation directory"), sprintf(gettext("The extension is installed in %s"), $rootfolder));?>
-                <?php html_text("plex_version", gettext("Plex version"), $plex_version);?>
-                <?php html_text("plexext_version", gettext("Extension version"), $plexext_version);?>
+                <tr>
+                    <td class="vncellt"><?=gettext("Plex version");?></td>
+                    <td class="vtable"><span name="getinfo_plex" id="getinfo_plex"><?=get_version_plex()?></span></td>
+                </tr>
+                <tr>
+                    <td class="vncellt"><?=gettext("Extension version");?></td>
+                    <td class="vtable"><span name="getinfo_ext" id="getinfo_ext"><?=get_version_ext()?></span></td>
+                </tr>
                 <tr>
                     <td class="vncellt"><?=gettext("Status");?></td>
-                    <td class="vtable"><span name="procinfo" id="procinfo"><?=get_process_info()?></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PID:&nbsp;<span name="procinfo_pid" id="procinfo_pid"><?=get_process_pid()?></span></td>
+                    <td class="vtable"><span name="getinfo" id="getinfo"><?=get_process_info()?></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PID:&nbsp;<span name="getinfo_pid" id="getinfo_pid"><?=get_process_pid()?></span></td>
                 </tr>
-                <?php
-                    $a_interface = get_interface_list();
-                    $pconfig['if'] = key($a_interface);
-                    $if = get_ifname($pconfig['if']);
-                    $ipaddr = get_ipaddr($if);
-                    $url = htmlspecialchars("http://{$ipaddr}:32400/web");
-                    $text = "<a href='{$url}' target='_blank'>{$url}</a>";
-                    html_text("url", gettext("WebGUI")." ".gettext("URL"), $text);
-                ?>
+                <?php html_filechooser("backup_path", gettext("Backup directory"), $backup_path, gettext("Directory to store archive.tar files of the plexdata folder."), $backup_path, true, 60);?>
+                <?php html_text("url", gettext("WebGUI")." ".gettext("URL"), $ipurl);?>
             </table>
             <div id="submit">
+                <input id="save" name="save" type="submit" class="formbtn" title="<?=gettext("Save settings");?>" value="<?=gettext("Save");?>"/>
                 <input name="start" type="submit" class="formbtn" title="<?=gettext("Start Plex Media Server");?>" value="<?=gettext("Start");?>" />
                 <input name="stop" type="submit" class="formbtn" title="<?=gettext("Stop Plex Media Server");?>" value="<?=gettext("Stop");?>" />
                 <input name="restart" type="submit" class="formbtn" title="<?=gettext("Restart Plex Media Server");?>" value="<?=gettext("Restart");?>" />
@@ -210,4 +281,9 @@ $(document).ready(function(){
     </table>
     <?php include("formend.inc");?>
 </form>
+<script type="text/javascript">
+<!--
+enable_change(false);
+//-->
+</script>
 <?php include("fend.inc");?>

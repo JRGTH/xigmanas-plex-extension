@@ -15,13 +15,15 @@ PRDVERSION=`uname -r | cut -d. -f1`
 PRDPLATFORM=`cat /etc/platform`
 SCRIPTNAME=`basename $0`
 APPVERSION=`cat ${CWDIR}/version 2> /dev/null`
+UNIONFS=`mount -t unionfs | grep "above" | grep -q "/usr/local"; echo $?`
 APPNAME="Plex Extension"
 PKGCACHE="/var/cache/pkg"
 PKGMETA="/var/db/pkg"
-COMPAT9XPATH1="/usr/local/lib/compat"
-COMPAT9XPATH2="/usr/local/lib32/compat"
-COMPAT9XPATH3="/usr/local/libdata/ldconfig"
-COMPAT9XPATH4="/usr/local/libdata/ldconfig32"
+PLEXCONF="/var/etc/plexconf"
+COMPATPATH1="/usr/local/lib/compat"
+COMPATPATH2="/usr/local/lib32/compat"
+COMPATPATH3="/usr/local/libdata/ldconfig"
+COMPATPATH4="/usr/local/libdata/ldconfig32"
 PLEXPATH="/usr/local/share/plexmediaserver"
 PLEXRCD="/usr/local/etc/rc.d/plexmediaserver"
 PLEXPID="/var/run/plex/plex.pid"
@@ -30,7 +32,6 @@ RCDPATH="/usr/local/etc/rc.d"
 CONFIG="/cf/conf/config.xml"
 PRDNAME="plexmediaserver"
 CMDNAME="plexmediaserver"
-COMPATPKG="compat9x-amd64"
 
 error_notify()
 {
@@ -43,9 +44,9 @@ update_freebsdconf()
 {
     # Replace old FreeBSD.conf to fetch latest packages.
     if [ -f /etc/pkg/FreeBSD.conf ]; then 
-        if /bin/cat "/etc/pkg/FreeBSD.conf" | grep "quarterly" >/dev/null 2>&1; then
+        if /bin/cat "/etc/pkg/FreeBSD.conf" | grep -q "quarterly"; then
             /usr/bin/sed -e "s=quarterly=latest=" /etc/pkg/FreeBSD.conf > /etc/pkg/FreeBSD.conf~
-            /bin/mv /etc/pkg/FreeBSD.conf~ /etc/pkg/FreeBSD.conf || error_notify "Error: A problem has occurred while renaming file."
+            /bin/mv /etc/pkg/FreeBSD.conf~ /etc/pkg/FreeBSD.conf || error_notify "Error: A problem has occurred while renaming conf file."
         fi
     fi
 }
@@ -57,14 +58,17 @@ plex_initial_download()
 
     # Check if Plex already exist.
     if [ ! -f ${PLEXPATH}/Plex_Media_Server ]; then
-        # Fetch and install latest Plex pkg.
+        # Fetch and install latest plex package.
         pkg install -y ${PRDNAME}
     fi
 
     # Backup latest plex rcd after install if embedded.
     if [ ${PRDPLATFORM} == "x64-embedded" ]; then
-        if [ -f ${PLEXRCD} ]; then
-            /bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying file."
+        # Check if the system is running unionfs for /usr/local(above).
+        if  [ ${UNIONFS} -eq 1 ]; then
+            if [ -f ${PLEXRCD} ]; then
+                /bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying rcd file."
+            fi
         fi
     fi
 }
@@ -74,13 +78,27 @@ pkg_upgrade()
     # Update FreeBSD.conf file.
     update_freebsdconf
 
-    # Check and upgrade latest Plex pkg.
-    pkg upgrade -y ${COMPATPKG} ${PRDNAME}
+    # Set plex current version variable.
+    PLEXVERSION=`pkg info -I plexmediaserver | cut -d' ' -f1 | cut -d- -f2 | tr -d .`
+
+    # Check for latest plex packages for upgrade.
+    pkg upgrade -y ${PRDNAME}
+
+    # Set plex new version variable.
+    PLEXNEWVERSION=`pkg info -I plexmediaserver | cut -d' ' -f1 | cut -d- -f2 | tr -d .`
+
+    # Restart plex if version upgraded.
+    if [ ${PLEXNEWVERSION} -gt ${PLEXVERSION} ]; then
+        service ${CMDNAME} onerestart 2> /dev/null || ${PLEXRCD} onerestart
+    fi
 
     # Backup latest plex rcd after upgrade if embedded.
     if [ ${PRDPLATFORM} == "x64-embedded" ]; then
-        if [ -f ${PLEXRCD} ]; then
-            /bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying file."
+        # Check if the system is running unionfs for /usr/local(above).
+        if  [ ${UNIONFS} -eq 1 ]; then
+            if [ -f ${PLEXRCD} ]; then
+                /bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying rcd file."
+            fi
         fi
     fi
 
@@ -96,15 +114,15 @@ extenstion_upgrade()
 {
     # Create temporary folder for the upgrade process.
     /bin/mkdir -p ${CWDIR}/update
-    /usr/bin/fetch -o ${CWDIR}/update https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/testing/plex/version || error_notify "Error: A problem has occurred while fetching version file."
+    /usr/bin/fetch -q -o ${CWDIR}/update https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/master/plex/version || error_notify "Error: A problem has occurred while fetching version file."
 
     # Compare version files and fetch latest package if available.
     if [ -f ${CWDIR}/update/version ]; then
         UPDATEVER=`cat ${CWDIR}/update/version | tr -d .`
         CURRENTVER=`cat ${CWDIR}/version | tr -d .`
         if [ ${UPDATEVER} -gt ${CURRENTVER} ]; then
-            /usr/bin/fetch -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/testing.zip || error_notify "Error: A problem has occurred while fetching extension package."
-            /usr/bin/tar -xf ${CWDIR}/update/testing.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+            /usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip || error_notify "Error: A problem has occurred while fetching extension package."
+            /usr/bin/tar -xf ${CWDIR}/update/master.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
             /bin/chmod +x ${CWDIR}/update/plex/plexinit
             /bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
 
@@ -114,7 +132,7 @@ extenstion_upgrade()
             # If gui disabled then remove old folder and rename new, otherwise copy new gui files.
             if [ -d ${CWDIR}/gui-off ]; then
                 /bin/rm -R ${CWDIR}/gui-off
-                /bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming folder."
+                /bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming gui folder."
             else
                 /bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
             fi
@@ -130,8 +148,8 @@ ext_initial_download()
     # Always ensure the version file is present, otherwise update the extension files on startup.
     if ! [ -f ${CWDIR}/version ]; then
         /bin/mkdir -p ${CWDIR}/update
-        /usr/bin/fetch -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/testing.zip
-        /usr/bin/tar -xf ${CWDIR}/update/testing.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+        /usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip || error_notify "Error: A problem has occurred while fetching extension package."
+        /usr/bin/tar -xf ${CWDIR}/update/master.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
         /bin/chmod +x ${CWDIR}/update/plex/plexinit
         /bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
         /bin/rm -R ${CWDIR}/update
@@ -156,10 +174,16 @@ product_check()
 platform_check()
 {
     # Check for working platform.
-    if [ ${PRDPLATFORM} == "x64-embedded" ]; then
-        pkg_symlinkdir
-        compat9x_symlinkdir
-        plex_symlinkdir
+    if [ ${PRDPLATFORM} == "x64-embedded" ] \
+        || [ ${PRDPLATFORM} == "x64-liveCD" ] \
+            || [ ${PRDPLATFORM} == "x64-liveUSB" ]; then
+        # Check if the system is running unionfs for /usr/local(above).
+        if  [ ${UNIONFS} -eq 1 ]; then
+            pkg_symlinkdir
+            compat_symlinkdir
+            plex_symlinkdir
+            plex_rcd_link
+        fi
     fi
 }
 
@@ -169,40 +193,93 @@ postinit_cmd()
     if ! /usr/bin/grep -q ${CWDIR}/plexinit ${CONFIG}; then
         /usr/bin/touch ${CWDIR}/postinit || error_notify "Error: A problem has occurred while creating postinit file."
         /bin/chmod +x ${CWDIR}/postinit
-        /bin/cat << EOF > ${CWDIR}/postinit
+        if [ ! ${PRDVERSION} -ge "11" ]; then
+            # Generate php script tor NAS4Free 10.x versions.
+            /bin/cat << EOF > ${CWDIR}/postinit
 <?php
-\$cmd = dirname(__FILE__)."/plexinit";
 require_once("config.inc");
 require_once("functions.inc");
-        \$i =0;
-        if ( is_array(\$config['rc']['postinit'] ) && is_array( \$config['rc']['postinit']['cmd'] ) ) {
-            for (\$i; \$i < count(\$config['rc']['postinit']['cmd']);) {
-                if (preg_match('/plexinit/', \$config['rc']['postinit']['cmd'][\$i])) break; ++\$i; }
-        }
-        \$config['rc']['postinit']['cmd'][\$i] = \$config['cmd']."\$cmd";
-        write_config();
+\$cmd = dirname(__FILE__)."/plexinit";
+    \$i =0;
+    if ( is_array(\$config['rc']['postinit'] ) && is_array( \$config['rc']['postinit']['cmd'] ) ) {
+        for (\$i; \$i < count(\$config['rc']['postinit']['cmd']);) {
+            if (preg_match('/plexinit/', \$config['rc']['postinit']['cmd'][\$i])) break; ++\$i; }
+    }
+    \$config['rc']['postinit']['cmd'][\$i] = \$config['cmd']."\$cmd";
+    write_config();
 ?>
 EOF
+        else
+            # Generate php script tor NAS4Free 11.x versions.
+            /bin/cat << EOF > ${CWDIR}/postinit
+<?php
+require_once("config.inc");
+require_once("functions.inc");
+\$cmd = dirname(__FILE__)."/plexinit";
+\$name = "Plex Extension";
+\$comment = "Plex Media Server";
+    if (isset(\$config['rc']['param'])) {
+        \$add_rc_for_plex = (false === array_search_ex(\$name, \$config['rc']['param'], 'name'));
+    } else {
+    \$add_rc_for_plex = true;
+    }
+    if(\$add_rc_for_plex) {
+        \$r_param = [];
+        \$r_param['uuid'] = uuid();
+        \$r_param['name'] = \$name;
+        \$r_param['value'] = \$cmd;
+        \$r_param['comment'] = \$comment;
+        \$r_param['typeid'] = '2';
+        \$r_param['enable'] = true;
+        \$config['rc']['param'][] = \$r_param;
+        write_config();
+    }
+?>
+EOF
+        fi
+
         # Execute temporary php script.
-        if [ "${OBI_INSTALL}" != "ON" ]; then 
-            /usr/local/bin/php-cgi -f ${CWDIR}/postinit && rm ${CWDIR}/postinit  
+        if [ "${OBI_INSTALL}" != "ON" ]; then
+            /usr/local/bin/php-cgi -f ${CWDIR}/postinit && rm ${CWDIR}/postinit
+            # To set enable for the GUI because at the installation Plex is started by default.
+            /bin/mkdir -p ${CWDIR}/conf
+            /usr/bin/touch ${CWDIR}/conf/enabled
+        else 
+            # To set enable for the GUI because at the installation Plex is started by default.
+            /bin/mkdir -p ${CWDIR}/conf
+            /usr/bin/touch ${CWDIR}/conf/enabled
         fi
     fi
 }
 
 gui_start()
 {
-    # Check and copy the GUI files.
+    # Initialize the extension GUI.
     if [ -d ${CWDIR}/gui ]; then
+
+        # Always ensure the conf directory exist.
+        if [ ! -d ${CWDIR}/conf ]; then
+            /bin/mkdir -p ${CWDIR}/conf
+        fi
+
+        # Store the installation path and link conf.
+        echo ${CWDIR} > ${CWDIR}/conf/install_path
+        /bin/mkdir -p ${PLEXCONF}
+        /bin/ln -Ffhs ${CWDIR}/version ${CWDIR}/conf/
+        /bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONF}/
+
+        # Copy the GUI files.
         /bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
     fi
 }
 
 gui_enable()
 {
-    #  Check and copy the GUI files.
+    #  Relink conf and copy the GUI files.
     if [ -d ${CWDIR}/gui-off ]; then
-        /bin/mv ${CWDIR}/gui-off ${CWDIR}/gui || error_notify "Error: A problem has occurred while renaming folder."
+        /bin/mkdir -p ${PLEXCONF}
+        /bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONF}/
+        /bin/mv ${CWDIR}/gui-off ${CWDIR}/gui || error_notify "Error: A problem has occurred while renaming gui folder."
         /bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
     fi
 }
@@ -211,14 +288,18 @@ gui_disable()
 {
     # Disable GUI if -t option specified.
     if [ -d ${CWDIR}/gui ]; then
-        /bin/rm -f /usr/local/www/plex-gui.php && /bin/rm -Rf /usr/local/www/ext/plex-gui
-        /bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming folder."
+        /bin/rm -f /usr/local/www/plex-gui.php
+        /bin/rm -Rf /usr/local/www/ext/plex-gui
+        /bin/rm -f /usr/local/share/locale-plex
+        /bin/rm -rf ${PLEXCONF}
+        /bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming gui folder."
     fi
 
-    # Remove empty ext folder to prevent null "Extensions" tab and unlink locale-plex.
-    if ! [ "$(ls -A /usr/local/www/ext)" ]; then
-        /bin/rm -r /usr/local/www/ext
-        /bin/rm -f /usr/local/share/locale-plex
+    # Remove empty ext folder to prevent null "Extensions" tab.
+    if [ -d "/usr/local/www/ext" ]; then
+        if ! [ "$(ls -A /usr/local/www/ext)" ]; then
+            /bin/rm -r /usr/local/www/ext
+        fi
     fi
 }
 
@@ -235,7 +316,7 @@ plex_usergroup()
 
 pkg_symlinkdir()
 {
-    # Check and create/relink required symlinks/dirs for pkg cache and metadata.
+    # Check and create/relink required symlinks/dirs for package cache and metadata.
     if [ -d ${PKGCACHE} ]; then
         /bin/rm -r ${PKGCACHE}
         /bin/mkdir -p ${CWDIR}/system/pkg/pkgcache
@@ -255,28 +336,36 @@ pkg_symlinkdir()
     fi
 }
 
-compat9x_symlinkdir()
+compat_symlinkdir()
 {
-    # Check and create/relink required symlinks/dirs for compat9x libs.
-    if [ ! -d ${COMPAT9XPATH1} ]; then
+    # Name the old compat9x directory to compat.
+    COMPATDIR="compat9x"
+    if [ ! -d ${CWDIR}/system/${COMPATDIR} ]; then
+        if [ ${PRDVERSION} -ge "11" ]; then
+            COMPATDIR="compat"
+        fi
+    fi
+
+    # Check and create/relink required symlinks/dirs for compat libs.
+    if [ ! -d ${COMPATPATH1} ]; then
         /bin/mkdir -m 0755 -p /usr/local/lib
-        /bin/mkdir -p ${CWDIR}/system/compat9x/lib/compat
-        /bin/ln -Ffhs ${CWDIR}/system/compat9x/lib/compat ${COMPAT9XPATH1}
+        /bin/mkdir -p ${CWDIR}/system/${COMPATDIR}/lib/compat
+        /bin/ln -Ffhs ${CWDIR}/system/${COMPATDIR}/lib/compat ${COMPATPATH1}
     fi
-    if [ ! -d ${COMPAT9XPATH2} ]; then
+    if [ ! -d ${COMPATPATH2} ]; then
         /bin/mkdir -m 0755 -p /usr/local/lib32
-        /bin/mkdir -p ${CWDIR}/system/compat9x/lib32/compat
-        /bin/ln -Ffhs ${CWDIR}/system/compat9x/lib32/compat ${COMPAT9XPATH2}
+        /bin/mkdir -p ${CWDIR}/system/${COMPATDIR}/lib32/compat
+        /bin/ln -Ffhs ${CWDIR}/system/${COMPATDIR}/lib32/compat ${COMPATPATH2}
     fi
-    if [ ! -d ${COMPAT9XPATH3} ]; then
+    if [ ! -d ${COMPATPATH3} ]; then
         /bin/mkdir -m 0755 -p /usr/local/libdata
-        /bin/mkdir -p ${CWDIR}/system/compat9x/libdata/ldconfig
-        /bin/ln -Ffhs ${CWDIR}/system/compat9x/libdata/ldconfig ${COMPAT9XPATH3}
+        /bin/mkdir -p ${CWDIR}/system/${COMPATDIR}/libdata/ldconfig
+        /bin/ln -Ffhs ${CWDIR}/system/${COMPATDIR}/libdata/ldconfig ${COMPATPATH3}
     fi
-    if [ ! -d ${COMPAT9XPATH4} ]; then
+    if [ ! -d ${COMPATPATH4} ]; then
         /bin/mkdir -m 0755 -p /usr/local/libdata
-        /bin/mkdir -p ${CWDIR}/system/compat9x/libdata/ldconfig32
-        /bin/ln -Ffhs ${CWDIR}/system/compat9x/libdata/ldconfig32 ${COMPAT9XPATH4}
+        /bin/mkdir -p ${CWDIR}/system/${COMPATDIR}/libdata/ldconfig32
+        /bin/ln -Ffhs ${CWDIR}/system/${COMPATDIR}/libdata/ldconfig32 ${COMPATPATH4}
     fi
 }
 
@@ -298,33 +387,46 @@ plex_symlinkdir()
     fi
 }
 
+plex_rcd_link()
+{
+    # Restore current plex rcd if embedded.
+    if [ ${PRDPLATFORM} == "x64-embedded" ]; then
+        # Check if the system is running unionfs for /usr/local(above).
+        if  [ ${UNIONFS} -eq 1 ]; then
+            if [ -f ${CWDIR}/system/rc.d/${CMDNAME} ]; then
+                /bin/cp ${CWDIR}/system/rc.d/${CMDNAME} ${RCDPATH} || error_notify "Error: A problem has occurred while copying rcd file."
+            fi
+        fi
+    fi
+}
+
+ext_enable_disable()
+{
+    # Start plex extension if gui enabled otherwise start plex cli version.
+    if [ -d ${CWDIR}/gui ]; then
+        if [ -f ${CWDIR}/conf/enabled ]; then
+            break
+        else
+            exit
+        fi
+    fi
+}
+
 plex_rcparamstart()
 {
     # Plex Media Server rc parameters.
-    if ! /bin/cat "/etc/rc.conf" | grep "${CMDNAME}_enable=\"NO\"" >/dev/null 2>&1; then
+    if ! /bin/cat "/etc/rc.conf" | grep -q "${CMDNAME}_enable=\"NO\""; then
         /usr/sbin/sysrc ${CMDNAME}_enable="NO" >/dev/null 2>&1
     fi
-    if ! /bin/cat "/etc/rc.conf" | grep "${CMDNAME}_support_path=\"${SUPPORTPATH}\"" >/dev/null 2>&1; then
+    if ! /bin/cat "/etc/rc.conf" | grep -q "${CMDNAME}_support_path=\"${SUPPORTPATH}\""; then
         /usr/sbin/sysrc ${CMDNAME}_support_path="${SUPPORTPATH}" >/dev/null 2>&1
     fi
-    if ! /bin/cat "/etc/rc.conf" | grep "${CMDNAME}_maxplugins=\"6\"" >/dev/null 2>&1; then
+    if ! /bin/cat "/etc/rc.conf" | grep -q "${CMDNAME}_maxplugins=\"6\""; then
         /usr/sbin/sysrc ${CMDNAME}_maxplugins="6" >/dev/null 2>&1
     fi
 
-    # Link plexinit to /usr/local/sbin.
-    if [ ! -f /usr/local/sbin/plexinit ]; then
-        /bin/ln -fs ${CWDIR}/plexinit /usr/local/sbin
-    fi
-
-    # Restore current plex rcd if embedded.
-    if [ ${PRDPLATFORM} == "x64-embedded" ]; then
-        if [ -f ${CWDIR}/system/rc.d/${CMDNAME} ]; then
-            /bin/cp ${CWDIR}/system/rc.d/${CMDNAME} ${RCDPATH} || error_notify "Error: A problem has occurred while copying file."
-        fi
-    fi
-
     # Start Plex Media Server.
-    if ! /usr/bin/top | grep "plex" >/dev/null 2>&1; then
+    if ! /bin/ps -acx | grep -q "Plex \Media \Server"; then
         service ${CMDNAME} onestart 2> /dev/null || ${PLEXRCD} onestart
     fi
     # Logg on startup success.
@@ -344,12 +446,18 @@ plex_init()
         echo "Unsupported version!"; exit 1
     fi
 
+    # Link plexinit to /usr/local/sbin.
+    if [ ! -f /usr/local/sbin/plexinit ]; then
+        /bin/ln -fs ${CWDIR}/plexinit /usr/local/sbin
+    fi
+
     # Function calls.
     platform_check
     ext_initial_download
     plex_initial_download
     plex_usergroup
     product_check
+    ext_enable_disable
     plex_rcparamstart
 }
 
@@ -366,7 +474,7 @@ while getopts ":otgsprvuh" option; do
         echo "        -g  Enables the addon GUI."
         echo "        -t  Disable the addon GUI."
         echo "        -h  Display this help message."; exit 0 ;;
-        [o]) OBI_INSTALL="ON";; #AFS: To prevent nested PHP-CGI call for installation with OBI.
+        [o]) OBI_INSTALL="ON";; # To prevent nested PHP-CGI call for installation with OBI.
         [g]) gui_enable; exit 0 ;; # For enable the addon gui.
         [t]) gui_disable; exit 0 ;; # For disable the addon gui.
         [s]) service ${CMDNAME} onestart 2> /dev/null || ${PLEXRCD} onestart; exit 0 ;;

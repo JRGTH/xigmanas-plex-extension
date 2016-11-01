@@ -45,10 +45,9 @@ install_main()
     # Fetch selected branch, default master.
     fetch_branch
 
-    # Extract the package, exclude unneeded files and perform cleanup.
+    # Extract the package and exclude unneeded files.
     echo "=> Extracting package files..."
     /usr/bin/tar -xf ${CWDIR}/master.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/ || error_notify "Error: A problem has occurred while extracting package."
-    /bin/rm -f "${CWDIR}/master.zip" "${CWDIR}/README.md" "${CWDIR}/plex-install.sh"
 
     # Make executable and run plexinit script.
     /bin/chmod 0755 ${CWDIR}/plex/plexinit
@@ -60,7 +59,7 @@ install_main()
         /usr/bin/logger "${SCRIPTNAME} Plex Extension installed successfully"
         /bin/rm -f "${CWDIR}/master.zip" "${CWDIR}/README.md" "${CWDIR}/plex-install.sh"
     else
-        error_notify "Error: A problem has occurred during install."
+        error_notify "Error: A problem has occurred during install process."
     fi
 }
 
