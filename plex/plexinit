@@ -14,7 +14,7 @@ PRODUCT=`uname -i`
 PRDVERSION=`uname -r | cut -d. -f1`
 PRDPLATFORM=`cat /etc/platform`
 SCRIPTNAME=`basename $0`
-APPVERSION=`cat ${CWDIR}/version 2> /dev/null`
+APPVERSION=`cat ${CWDIR}/conf/version 2> /dev/null`
 UNIONFS=`mount -t unionfs | grep "above" | grep -q "/usr/local"; echo $?`
 APPNAME="Plex Extension"
 PKGCACHE="/var/cache/pkg"
@@ -103,7 +103,7 @@ pkg_upgrade()
     fi
 
     # Check and upgrade extension package.
-    if [ -f ${CWDIR}/version ]; then
+    if [ -f ${CWDIR}/conf/version ]; then
         extenstion_upgrade
     else
         ext_initial_download
@@ -114,15 +114,15 @@ extenstion_upgrade()
 {
     # Create temporary folder for the upgrade process.
     /bin/mkdir -p ${CWDIR}/update
-    /usr/bin/fetch -q -o ${CWDIR}/update https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/master/plex/version || error_notify "Error: A problem has occurred while fetching version file."
+    /usr/bin/fetch -q -o ${CWDIR}/update https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/testing/plex/conf/version || error_notify "Error: A problem has occurred while fetching version file."
 
     # Compare version files and fetch latest package if available.
-    if [ -f ${CWDIR}/update/version ]; then
-        UPDATEVER=`cat ${CWDIR}/update/version | tr -d .`
-        CURRENTVER=`cat ${CWDIR}/version | tr -d .`
+    if [ -f ${CWDIR}/update/conf/version ]; then
+        UPDATEVER=`cat ${CWDIR}/update/conf/version | tr -d .`
+        CURRENTVER=`cat ${CWDIR}/conf/version | tr -d .`
         if [ ${UPDATEVER} -gt ${CURRENTVER} ]; then
-            /usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip || error_notify "Error: A problem has occurred while fetching extension package."
-            /usr/bin/tar -xf ${CWDIR}/update/master.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+            /usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/testing.zip || error_notify "Error: A problem has occurred while fetching extension package."
+            /usr/bin/tar -xf ${CWDIR}/update/testing.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
             /bin/chmod +x ${CWDIR}/update/plex/plexinit
             /bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
 
@@ -146,10 +146,10 @@ extenstion_upgrade()
 ext_initial_download()
 {
     # Always ensure the version file is present, otherwise update the extension files on startup.
-    if ! [ -f ${CWDIR}/version ]; then
+    if ! [ -f ${CWDIR}/conf/version ]; then
         /bin/mkdir -p ${CWDIR}/update
-        /usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip || error_notify "Error: A problem has occurred while fetching extension package."
-        /usr/bin/tar -xf ${CWDIR}/update/master.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+        /usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/testing.zip || error_notify "Error: A problem has occurred while fetching extension package."
+        /usr/bin/tar -xf ${CWDIR}/update/testing.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
         /bin/chmod +x ${CWDIR}/update/plex/plexinit
         /bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
         /bin/rm -R ${CWDIR}/update
@@ -242,11 +242,9 @@ EOF
         if [ "${OBI_INSTALL}" != "ON" ]; then
             /usr/local/bin/php-cgi -f ${CWDIR}/postinit && rm ${CWDIR}/postinit
             # To set enable for the GUI because at the installation Plex is started by default.
-            /bin/mkdir -p ${CWDIR}/conf
             /usr/bin/touch ${CWDIR}/conf/enabled
         else 
             # To set enable for the GUI because at the installation Plex is started by default.
-            /bin/mkdir -p ${CWDIR}/conf
             /usr/bin/touch ${CWDIR}/conf/enabled
         fi
     fi
@@ -256,16 +254,9 @@ gui_start()
 {
     # Initialize the extension GUI.
     if [ -d ${CWDIR}/gui ]; then
-
-        # Always ensure the conf directory exist.
-        if [ ! -d ${CWDIR}/conf ]; then
-            /bin/mkdir -p ${CWDIR}/conf
-        fi
-
         # Store the installation path and link conf.
         echo ${CWDIR} > ${CWDIR}/conf/install_path
         /bin/mkdir -p ${PLEXCONF}
-        /bin/ln -Ffhs ${CWDIR}/version ${CWDIR}/conf/
         /bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONF}/
 
         # Copy the GUI files.
