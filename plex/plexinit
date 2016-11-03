@@ -124,10 +124,6 @@ extenstion_upgrade()
 			/usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip || error_notify "Error: A problem has occurred while fetching extension package."
 			/usr/bin/tar -xf ${CWDIR}/update/master.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 			/bin/chmod +x ${CWDIR}/update/plex/plexinit
-			# Cleanup obsolete config files on old versions.
-			if [ ! -f ${CWDIR}/conf/plex_config ]; then
-				/bin/rm -rf ${CWDIR}/conf/*
-			fi
 			/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
 
 			# Perform cleanup.
