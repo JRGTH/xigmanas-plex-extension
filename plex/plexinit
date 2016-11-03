@@ -258,8 +258,8 @@ gui_start()
 {
 	# Initialize the extension GUI.
 	if [ -d ${CWDIR}/gui ]; then
-		# Always ensure the conf directory exist.
-		if [ ! -d ${CWDIR}/conf ]; then
+		# Always ensure the config directory/file exist.
+		if [ ! -f ${CWDIR}/conf/plex_config ]; then
 			# Restore default configuration.
 			/bin/mkdir -p ${CWDIR}/conf
 			/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" PLEX_ENABLE=YES GUI_ENABLE=YES >/dev/null 2>&1

@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.1.049....Fix for default config restore
 4.1.048....Rework for sysrc config, gtext and improvements
 4.1.047....Added conf directory verification
 4.1.046....Added support for NAS4Free 11.x versions
