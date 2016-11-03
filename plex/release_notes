@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.1.050....Revert version file to default location
 4.1.049....Fix for default config restore
 4.1.048....Rework for sysrc config, gtext and improvements
 4.1.047....Added conf directory verification
