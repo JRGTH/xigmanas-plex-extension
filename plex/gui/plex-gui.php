@@ -42,7 +42,7 @@ require("guiconfig.inc");
 $pgtitle = array(gtext("Extensions"), "Plex Media Server (Testing)");
 
 // Initialize some variables.
-if ( is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
+if (is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
 	for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) { if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) break; ++$i; }
 }
 //$rootfolder = dirname($config['rc']['postinit']['cmd'][$i]);
@@ -136,8 +136,23 @@ if ($_POST) {
 			}
 		}
 		write_config();
-		header("Location:index.php");
+		// Remove postinit cmd in NAS4Free later versions.
+		if (is_array($config['rc']) && is_array($config['rc']['param'])) {
+			$postinit_cmd = "{$rootfolder}/plexinit";
+			$value = $postinit_cmd;
+			$sphere_array = &$config['rc']['param'];
+			$updateconfigfile = false;
+		if (false !== ($index = array_search_ex($value, $sphere_array, 'value'))) {
+			unset($sphere_array[$index]);
+			$updateconfigfile = true;
+		}
+		if ($updateconfigfile) {
+			write_config();
+			$updateconfigfile = false;
+		}
 	}
+	header("Location:index.php");
+}
 
 	if (isset($_POST['save']) && $_POST['save']) {
 		// Ensure to have NO whitespace & trailing slash.
