@@ -39,7 +39,7 @@
 require("auth.inc");
 require("guiconfig.inc");
 
-$pgtitle = array(gtext("Extensions"), "Plex Media Server (Testing)");
+$pgtitle = array(gtext("Extensions"), "Plex Media Server");
 
 // Initialize some variables.
 if ( is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
@@ -51,7 +51,7 @@ $confdir = "/var/etc/plexconf";
 $cwdir = exec("/bin/cat {$confdir}/conf/plex_config | grep 'INSTALL_DIR=' | cut -d'\"' -f2");
 $rootfolder = $cwdir;
 $configfile = "{$rootfolder}/conf/plex_config";
-$versionfile = "{$rootfolder}/conf/version";
+$versionfile = "{$rootfolder}/version";
 
 if ($rootfolder == "") $input_errors[] = gtext("Extension installed with fault");
 else {

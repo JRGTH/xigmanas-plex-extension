@@ -3,7 +3,10 @@
 ===============================
 Version    Description
 
-4.1.048....Moved version file to conf and use gtext
+4.1.051....Cleanup unused code
+4.1.050....Revert version file to default location
+4.1.049....Fix for default config restore
+4.1.048....Rework for sysrc config, gtext and improvements
 4.1.047....Added conf directory verification
 4.1.046....Added support for NAS4Free 11.x versions
 4.1.045....Adjust readme information
