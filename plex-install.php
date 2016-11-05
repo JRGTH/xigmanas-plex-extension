@@ -42,6 +42,8 @@ require("guiconfig.inc");
 $application = "Plex Media Server";
 $pgtitle = array(gtext("Extensions"), gtext($application), gtext("Installation Directory"));
 if (!isset($config['plex']) || !is_array($config['plex'])) $config['plex'] = array();
+$date = strftime('%c');
+$logfile = "plex_ext.log";
 
 /*
 Check if the directory exists, the mountpoint has at least o=rx permissions and
@@ -90,7 +92,7 @@ if (isset($_POST['save-install']) && $_POST['save-install']) {
 			change_perms($config['plex']['storage_path']);
 			$config['plex']['path_check'] = isset($_POST['path_check']) ? true : false;
 			$install_dir = $config['plex']['storage_path']."/";   // Get directory where the installer script resides.
-			//if (!is_dir("{$install_dir}plex/log")) { mkdir("{$install_dir}plex/log", 0775, true); }
+			if (!is_dir("{$install_dir}plex/log")) { mkdir("{$install_dir}plex/log", 0775, true); }
 			$return_val = mwexec("fetch {$verify_hostname} -vo {$install_dir}plex/plexinit 'https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/master/plex/plexinit'", true);
 			if ($return_val == 0) {
 				// Perform cleanup for obsolete files on upgrades.
@@ -106,6 +108,7 @@ if (isset($_POST['save-install']) && $_POST['save-install']) {
 				exec("sh {$install_dir}plex/plexinit -o");
 				exec("php {$install_dir}plex/postinit");
 				if (is_file("{$install_dir}plex/postinit")) unlink("{$install_dir}plex/postinit");
+				exec("echo '{$date}: {$application} extension successfully installed' > {$install_dir}plex/log/{$logfile}");
 			}
 			else {
 				$input_errors[] = sprintf(gtext("Installation file %s not found, installation aborted!"), "{$install_dir}plex/plexinit");
