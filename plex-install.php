@@ -43,7 +43,7 @@ $application = "Plex Media Server";
 $pgtitle = array(gtext("Extensions"), gtext($application), gtext("Installation Directory"));
 if (!isset($config['plex']) || !is_array($config['plex'])) $config['plex'] = array();
 $date = strftime('%c');
-$logfile = "{$rootfolder}/log/plex_ext.log";
+$logfile = "plex_ext.log";
 
 /*
 Check if the directory exists, the mountpoint has at least o=rx permissions and
@@ -108,7 +108,7 @@ if (isset($_POST['save-install']) && $_POST['save-install']) {
 				exec("sh {$install_dir}plex/plexinit -o");
 				exec("php {$install_dir}plex/postinit");
 				if (is_file("{$install_dir}plex/postinit")) unlink("{$install_dir}plex/postinit");
-				exec("echo '{$date}: $application Extension successfully installed' >> {$logfile}");
+				exec("echo '{$date}: {$application} Extension successfully installed' > {$install_dir}plex/log/{$logfile}");
 			}
 			else {
 				$input_errors[] = sprintf(gtext("Installation file %s not found, installation aborted!"), "{$install_dir}plex/plexinit");
