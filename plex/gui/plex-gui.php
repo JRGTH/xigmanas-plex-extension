@@ -2,8 +2,9 @@
 /*
 	plex-gui.php
 
-	WebGUI wrapper for the NAS4Free "Plex Media Server" add-on created by J.M Rivera
+	WebGUI wrapper for the NAS4Free "Plex Media Server*" add-on created by J.M Rivera.
 	(http://forums.nas4free.org/viewtopic.php?f=71&t=11049)
+	*Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
 
 	Copyright (c) 2016 Andreas Schmidhuber
 	All rights reserved.
