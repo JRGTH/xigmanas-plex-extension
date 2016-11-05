@@ -87,7 +87,7 @@ if (isset($_POST['save-install']) && $_POST['save-install']) {
 			$config['plex']['path_check'] = isset($_POST['path_check']) ? true : false;
 			$install_dir = $config['plex']['storage_path']."/";   // Get directory where the installer script resides
 			if (!is_dir("{$install_dir}plex/log")) { mkdir("{$install_dir}plex/log", 0755, true); }
-			$return_val = mwexec("fetch {$verify_hostname} -vo {$install_dir}plex/plexinit 'https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/master/plex/plexinit'", true);
+			$return_val = mwexec("fetch {$verify_hostname} -vo {$install_dir}plex/plexinit 'https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/testing/plex/plexinit'", true);
 			if ($return_val == 0) {
 				exec("sh {$install_dir}plex/plexinit -o");
 				exec("php {$install_dir}plex/postinit");
