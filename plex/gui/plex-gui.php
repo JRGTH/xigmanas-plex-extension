@@ -39,7 +39,7 @@
 require("auth.inc");
 require("guiconfig.inc");
 
-$pgtitle = array(gtext("Extensions"), "Plex Media Server");
+$pgtitle = array(gtext("Extensions"), "Plex Media Server (Testing)");
 
 // Initialize some variables.
 if ( is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {

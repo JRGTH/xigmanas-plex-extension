@@ -114,15 +114,15 @@ extenstion_upgrade()
 {
 	# Create temporary folder for the upgrade process.
 	/bin/mkdir -p ${CWDIR}/update
-	/usr/bin/fetch -q -o ${CWDIR}/update https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/master/plex/version || error_notify "Error: A problem has occurred while fetching version file."
+	/usr/bin/fetch -q -o ${CWDIR}/update https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/testing/plex/version || error_notify "Error: A problem has occurred while fetching version file."
 
 	# Compare version files and fetch latest package if available.
 	if [ -f ${CWDIR}/update/version ]; then
 		UPDATEVER=`cat ${CWDIR}/update/version | tr -d .`
 		CURRENTVER=`cat ${CWDIR}/version | tr -d .`
 		if [ ${UPDATEVER} -gt ${CURRENTVER} ]; then
-			/usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip || error_notify "Error: A problem has occurred while fetching extension package."
-			/usr/bin/tar -xf ${CWDIR}/update/master.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+			/usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/testing.zip || error_notify "Error: A problem has occurred while fetching extension package."
+			/usr/bin/tar -xf ${CWDIR}/update/testing.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 			/bin/chmod +x ${CWDIR}/update/plex/plexinit
 			/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
 
@@ -148,8 +148,8 @@ ext_initial_download()
 	# Always ensure the version file is present, otherwise update the extension files on startup.
 	if ! [ -f ${CWDIR}/version ]; then
 		/bin/mkdir -p ${CWDIR}/update
-		/usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip || error_notify "Error: A problem has occurred while fetching extension package."
-		/usr/bin/tar -xf ${CWDIR}/update/master.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+		/usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/testing.zip || error_notify "Error: A problem has occurred while fetching extension package."
+		/usr/bin/tar -xf ${CWDIR}/update/testing.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 		/bin/chmod +x ${CWDIR}/update/plex/plexinit
 		/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
 		/bin/rm -r ${CWDIR}/update
