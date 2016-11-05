@@ -40,7 +40,8 @@
 require("auth.inc");
 require("guiconfig.inc");
 
-$pgtitle = array(gtext("Extensions"), "Plex Media Server");
+$application = "Plex Media Server";
+$pgtitle = array(gtext("Extensions"), "Plex Media Server (Testing)");
 
 // Initialize some variables.
 if (is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
@@ -54,6 +55,7 @@ $rootfolder = $cwdir;
 $configfile = "{$rootfolder}/conf/plex_config";
 $versionfile = "{$rootfolder}/version";
 $date = strftime('%c');
+$logfile = "{$rootfolder}/log/plex_ext.log";
 
 if ($rootfolder == "") $input_errors[] = gtext("Extension installed with fault");
 else {
@@ -79,20 +81,38 @@ $ipurl = "<a href='{$url}' target='_blank'>{$url}</a>";
 if ($_POST) {
 	if (isset($_POST['start']) && $_POST['start']) {
 		$return_val = mwexec("{$rootfolder}/plexinit -s", true);
-		if ($return_val == 0) { $savemsg .= gtext("Plex Media Server started successfully."); }
-		else { $input_errors[] = gtext("Plex Media Server startup failed."); }
+		if ($return_val == 0) {
+			$savemsg .= gtext("Plex Media Server started successfully.");
+			exec("echo '{$date}: {$application} successfully started' >> {$logfile}");
+			}
+		else {
+			$input_errors[] = gtext("Plex Media Server startup failed.");
+			exec("echo '{$date}: {$application} startup failed' >> {$logfile}");
+			}
 	}
 
 	if (isset($_POST['stop']) && $_POST['stop']) {
 		$return_val = mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
-		if ($return_val == 0) { $savemsg .= gtext("Plex Media Server stopped successfully."); }
-		else { $input_errors[] = gtext("Plex Media Server stop failed."); }
+		if ($return_val == 0) {
+			$savemsg .= gtext("Plex Media Server stopped successfully.");
+			exec("echo '{$date}: {$application} successfully stopped' >> {$logfile}");
+			}
+		else {
+			$input_errors[] = gtext("Plex Media Server stop failed.");
+			exec("echo '{$date}: {$application} stop failed' >> {$logfile}");
+			}
 	}
 
 	if (isset($_POST['restart']) && $_POST['restart']) {
 		$return_val = mwexec("{$rootfolder}/plexinit -r", true);
-		if ($return_val == 0) { $savemsg .= gtext("Plex Media Server restarted successfully."); }
-		else { $input_errors[] = gtext("Plex Media Server restart failed."); }
+		if ($return_val == 0) {
+			$savemsg .= gtext("Plex Media Server restarted successfully.");
+			exec("echo '{$date}: {$application} successfully restarted' >> {$logfile}");
+			}
+		else {
+			$input_errors[] = gtext("Plex Media Server restart failed.");
+			exec("echo '{$date}: {$application} restart failed' >> {$logfile}");
+			}
 	}
 
 	if (isset($_POST['upgrade']) && $_POST['upgrade']) {
@@ -105,9 +125,12 @@ if ($_POST) {
 		$return_val = mwexec("mkdir -p {$backup_path} && cd {$rootfolder} && tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar {$backup_path}", true);
 		if ($return_val == 0) {
 			$savemsg .= gtext("Plexdata backup created successfully in {$backup_path}.");
-			exec("echo '{$date}: Plexdata backup successfully created' >> {$rootfolder}/log/plex_ext.log");
+			exec("echo '{$date}: Plexdata backup successfully created' >> {$logfile}");
 			}
-		else { $input_errors[] = gtext("Plexdata backup failed."); }
+		else {
+			$input_errors[] = gtext("Plexdata backup failed.");
+			exec("echo '{$date}: Plexdata backup failed' >> {$logfile}");
+			}
 	}
 
 	if (isset($_POST['remove']) && $_POST['remove']) {
@@ -116,6 +139,7 @@ if ($_POST) {
 		if (is_dir($confdir)) mwexec("rm -rf {$confdir}", true);
 		mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
 		mwexec("{$rootfolder}/plexinit -t", true);
+		exec("echo '{$date}: Extension GUI successfully removed' >> {$logfile}");
 		header("Location:index.php");
 	}
 
@@ -167,12 +191,19 @@ if ($_POST) {
 		if (isset($_POST['enable'])) { 
 			exec("/usr/sbin/sysrc -f {$configfile} PLEX_ENABLE=YES");
 			mwexec("{$rootfolder}/plexinit", true);
+			exec("echo '{$date}: Extension settings saved and enabled' >> {$logfile}");
 		}
 		else {
 			exec("/usr/sbin/sysrc -f {$configfile} PLEX_ENABLE=NO");
 			$return_val = mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
-			if ($return_val == 0) { $savemsg .= gtext("Plex Media Server stopped successfully."); }
-			else { $input_errors[] = gtext("Plex Media Server stop failed."); }
+			if ($return_val == 0) {
+				$savemsg .= gtext("Plex Media Server stopped successfully.");
+				exec("echo '{$date}: Extension settings saved and disabled' >> {$logfile}");
+				}
+			else {
+				$input_errors[] = gtext("Plex Media Server stop failed.");
+				exec("echo '{$date}: {$application} stop failed' >> {$logfile}");
+				}
 		}
 	}
 }
