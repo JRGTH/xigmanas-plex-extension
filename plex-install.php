@@ -2,7 +2,7 @@
 /* 
 	plex-install.php
 
-	Plex* Extension Installer for the NAS4Free "Plex Media Server*" add-on created by J.M Rivera.
+	Installer for the NAS4Free "Plex Media Server*" add-on created by J.M Rivera.
 	(http://forums.nas4free.org/viewtopic.php?f=71&t=11049)
 	*Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
 
@@ -42,6 +42,7 @@ require("guiconfig.inc");
 $application = "Plex Media Server";
 $pgtitle = array(gtext("Extensions"), gtext($application), gtext("Installation Directory"));
 if (!isset($config['plex']) || !is_array($config['plex'])) $config['plex'] = array();
+$date = strftime('%c');
 
 /*
 Check if the directory exists, the mountpoint has at least o=rx permissions and
@@ -83,14 +84,14 @@ if (isset($_POST['save-install']) && $_POST['save-install']) {
 		$config['plex']['storage_path'] = !empty($_POST['storage_path']) ? $_POST['storage_path'] : $g['media_path'];
 		$config['plex']['storage_path'] = rtrim($config['plex']['storage_path'],'/');   // Ensure to have NO trailing slash.
 		if (!isset($_POST['path_check']) && (strpos($config['plex']['storage_path'], "/mnt/") === false)) {
-			$input_errors[] = gtext("The common directory for Plex Extension MUST be set to a directory below '/mnt/' to prevent to loose the extension after a reboot on embedded systems!");
+			$input_errors[] = gtext("The common directory for extensions MUST be set to a directory below '/mnt/' to prevent to loose the extension after a reboot on embedded systems!");
 		}
 		else {
 			if (!is_dir($config['plex']['storage_path'])) mkdir($config['plex']['storage_path'], 0775, true);
 			change_perms($config['plex']['storage_path']);
 			$config['plex']['path_check'] = isset($_POST['path_check']) ? true : false;
 			$install_dir = $config['plex']['storage_path']."/";   // Get directory where the installer script resides.
-			//if (!is_dir("{$install_dir}plex/log")) { mkdir("{$install_dir}plex/log", 0775, true); }
+			if (!is_dir("{$install_dir}plex/log")) { mkdir("{$install_dir}plex/log", 0775, true); }
 			$return_val = mwexec("fetch {$verify_hostname} -vo {$install_dir}plex/plexinit 'https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/testing/plex/plexinit'", true);
 			if ($return_val == 0) {
 				// Perform cleanup for obsolete files on upgrades.
@@ -102,9 +103,11 @@ if (isset($_POST['save-install']) && $_POST['save-install']) {
 					if (is_dir("ext/plex-gui")) exec("rm -rf ext/plex-gui");
 					if (is_file("plex-gui.php")) unlink("plex-gui.php");
 				}
+				chmod("{$install_dir}plex/plexinit", 0775);
 				exec("sh {$install_dir}plex/plexinit -o");
 				exec("php {$install_dir}plex/postinit");
 				if (is_file("{$install_dir}plex/postinit")) unlink("{$install_dir}plex/postinit");
+				exec("echo '{$date}: $application Extension successfully installed' >> {$install_dir}plex/log/plex_ext.log");
 			}
 			else {
 				$input_errors[] = sprintf(gtext("Installation file %s not found, installation aborted!"), "{$install_dir}plex/plexinit");
@@ -118,6 +121,7 @@ if (isset($_POST['save-install']) && $_POST['save-install']) {
 
 if (isset($_POST['cancel']) && $_POST['cancel']) {
 	$return_val = mwexec("rm -rf ext/plex-install; rm -f plex-install.php", true);
+	if (is_dir("ext")) exec("if [ ! $(ls -A ext) ]; then rm -r ext; fi");
 	if ($return_val == 0) { $savemsg .= $application." ".gtext("not installed"); }
 	else { $input_errors[] = $application." removal failed"; }
 	header("Location:index.php");

@@ -40,7 +40,7 @@
 require("auth.inc");
 require("guiconfig.inc");
 
-$pgtitle = array(gtext("Extensions"), "Plex Media Server (Testing)");
+$pgtitle = array(gtext("Extensions"), "Plex Media Server");
 
 // Initialize some variables.
 if (is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
@@ -53,6 +53,7 @@ $cwdir = exec("/bin/cat {$confdir}/conf/plex_config | grep 'INSTALL_DIR=' | cut 
 $rootfolder = $cwdir;
 $configfile = "{$rootfolder}/conf/plex_config";
 $versionfile = "{$rootfolder}/version";
+$date = strftime('%c');
 
 if ($rootfolder == "") $input_errors[] = gtext("Extension installed with fault");
 else {
@@ -102,7 +103,10 @@ if ($_POST) {
 
 	if (isset($_POST['backup']) && $_POST['backup']) {
 		$return_val = mwexec("mkdir -p {$backup_path} && cd {$rootfolder} && tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar {$backup_path}", true);
-		if ($return_val == 0) { $savemsg .= gtext("Plexdata backup created successfully in {$backup_path}."); }
+		if ($return_val == 0) {
+			$savemsg .= gtext("Plexdata backup created successfully in {$backup_path}.");
+			exec("echo '{$date}: Plexdata backup successfully created' >> {$rootfolder}/log/plex_ext.log");
+			}
 		else { $input_errors[] = gtext("Plexdata backup failed."); }
 	}
 
