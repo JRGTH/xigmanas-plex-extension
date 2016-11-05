@@ -210,8 +210,7 @@ $(document).ready(function(){
 //]]>
 </script>
 <!-- The Spinner Elements -->
-<?php include("ext/plex-gui/spinner.inc");?>
-<script src="ext/plex-gui/spin.min.js"></script>
+<script src="js/spin.min.js"></script>
 <!-- use: onsubmit="spinner()" within the form tag -->
 <script type="text/javascript">
 <!--
