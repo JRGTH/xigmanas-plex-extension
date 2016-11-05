@@ -3,6 +3,8 @@
 ===============================
 Version    Description
 
+4.1.054....Correcting version number
+4.1.053....Add new installer, logging support and improvements
 4.1.052....Add gui installer, fixes and cleanup
 4.1.051....Cleanup unused code
 4.1.050....Revert version file to default location
