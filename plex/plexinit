@@ -1,6 +1,6 @@
 #!/bin/sh
 # plexinit.sh
-# Created by: J.M Rivera
+# Created by: J.M Rivera (http://forums.nas4free.org/viewtopic.php?f=71&t=11049)
 # Provide: Plex Media Server*
 # Require: NAS4Free 10.x and later version.
 # *Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
@@ -126,16 +126,13 @@ extenstion_upgrade()
 			/bin/chmod +x ${CWDIR}/update/plex/plexinit
 			/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
 
-			# Perform cleanup.
-			/bin/rm -r ${CWDIR}/update
-
-			# If gui disabled then remove old folder and rename new, otherwise copy new gui files.
-			if [ -d ${CWDIR}/gui-off ]; then
-				/bin/rm -r ${CWDIR}/gui-off
-				/bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming gui folder."
-			else
+			# If gui enable then copy new gui files.
+			GUI_STATUS=`cat ${CWDIR}/conf/plex_config | grep 'GUI_ENABLE=' | cut -d'"' -f2`
+			if [ "${GUI_STATUS}" == "YES" ]; then
 				/bin/cp -r ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
 			fi
+			# Perform cleanup.
+			/bin/rm -r ${CWDIR}/update
 		else
 			# Perform cleanup.
 			/bin/rm -r ${CWDIR}/update
@@ -146,19 +143,13 @@ extenstion_upgrade()
 ext_initial_download()
 {
 	# Always ensure the version file is present, otherwise update the extension files on startup.
-	if ! [ -f ${CWDIR}/version ]; then
+	if [ ! -f ${CWDIR}/version ]; then
 		/bin/mkdir -p ${CWDIR}/update
 		/usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip || error_notify "Error: A problem has occurred while fetching extension package."
 		/usr/bin/tar -xf ${CWDIR}/update/master.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 		/bin/chmod +x ${CWDIR}/update/plex/plexinit
 		/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
 		/bin/rm -r ${CWDIR}/update
-
-		# If gui disabled then remove old folder and rename new.
-		if [ -d ${CWDIR}/gui-off ]; then
-			/bin/rm -rf ${CWDIR}/gui-off
-			/bin/mv ${CWDIR}/gui ${CWDIR}/gui-off
-		fi
 	fi
 }
 
@@ -281,7 +272,6 @@ gui_enable()
 		/bin/mkdir -p ${PLEXCONFDIR}
 		/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFDIR}/
 		/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" GUI_ENABLE=YES >/dev/null 2>&1
-		#/bin/mv ${CWDIR}/gui-off ${CWDIR}/gui || error_notify "Error: A problem has occurred while renaming gui folder."
 		/bin/cp -r ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
 	fi
 }
@@ -294,14 +284,12 @@ gui_disable()
 		/bin/rm -rf /usr/local/www/ext/plex-gui
 		/bin/rm -f /usr/local/share/locale-plex
 		/bin/rm -rf ${PLEXCONFDIR}
-		#/bin/mv ${CWDIR}/gui ${CWDIR}/gui-off || error_notify "Error: A problem has occurred while renaming gui folder."
 		/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" GUI_ENABLE=NO >/dev/null 2>&1
-		#/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" -x GUI_ENABLE >/dev/null 2>&1
 	fi
 
 	# Remove empty ext folder to prevent null "Extensions" tab.
 	if [ -d "/usr/local/www/ext" ]; then
-		if ! [ "$(ls -A /usr/local/www/ext)" ]; then
+		if [ ! "$(ls -A /usr/local/www/ext)" ]; then
 			/bin/rm -r /usr/local/www/ext
 		fi
 	fi

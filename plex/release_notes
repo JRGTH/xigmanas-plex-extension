@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.1.052....Add gui installer, fixes and cleanup
 4.1.051....Cleanup unused code
 4.1.050....Revert version file to default location
 4.1.049....Fix for default config restore
