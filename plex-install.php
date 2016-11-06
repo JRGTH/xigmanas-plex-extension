@@ -39,8 +39,13 @@
 require("auth.inc");
 require("guiconfig.inc");
 
+// Predefined functions overrides.
+function gtxt($data) {
+	return htmlspecialchars(gettext($data), ENT_QUOTES);
+}
+
 $application = "Plex Media Server";
-$pgtitle = array(gtext("Extensions"), gtext($application), gtext("Installation Directory"));
+$pgtitle = array(gtxt("Extensions"), gtxt($application), gtxt("Installation Directory"));
 if (!isset($config['plex']) || !is_array($config['plex'])) $config['plex'] = array();
 $date = strftime('%c');
 $logfile = "plex_ext.log";
@@ -55,7 +60,7 @@ function change_perms($dir) {
 	$path = rtrim($dir,'/');   // Remove trailing slash.
 	if (strlen($path) > 1) {
 		if (!is_dir($path)) {   // Check if directory exists.
-			$input_errors[] = sprintf(gtext("Directory %s doesn't exist!"), $path);
+			$input_errors[] = sprintf(gtxt("Directory %s doesn't exist!"), $path);
 		}
 		else {
 			$path_check = explode("/", $path);   // Split path to get directory names.
@@ -73,7 +78,7 @@ function change_perms($dir) {
 				exec("chown {$_POST['who']} {$directory}*");
 			}
 			else {
-				$input_errors[] = sprintf(gtext("%s needs at least read & execute permissions at the mount point for directory %s! Set the Read and Execute bits for Others (Access Restrictions | Mode) for the mount point %s (in <a href='disks_mount.php'>Disks | Mount Point | Management</a> or <a href='disks_zfs_dataset.php'>Disks | ZFS | Datasets</a>) and hit Save in order to take them effect."), $application, $path, "/{$path_check[1]}/{$path_check[2]}");
+				$input_errors[] = sprintf(gtxt("%s needs at least read & execute permissions at the mount point for directory %s! Set the Read and Execute bits for Others (Access Restrictions | Mode) for the mount point %s (in <a href='disks_mount.php'>Disks | Mount Point | Management</a> or <a href='disks_zfs_dataset.php'>Disks | ZFS | Datasets</a>) and hit Save in order to take them effect."), $application, $path, "/{$path_check[1]}/{$path_check[2]}");
 			}
 		}
 	}
@@ -85,7 +90,7 @@ if (isset($_POST['save-install']) && $_POST['save-install']) {
 		$config['plex']['storage_path'] = !empty($_POST['storage_path']) ? $_POST['storage_path'] : $g['media_path'];
 		$config['plex']['storage_path'] = rtrim($config['plex']['storage_path'],'/');   // Ensure to have NO trailing slash.
 		if (!isset($_POST['path_check']) && (strpos($config['plex']['storage_path'], "/mnt/") === false)) {
-			$input_errors[] = gtext("The common directory for extensions MUST be set to a directory below '/mnt/' to prevent to loose the extension after a reboot on embedded systems!");
+			$input_errors[] = gtxt("The common directory for extensions MUST be set to a directory below '/mnt/' to prevent to loose the extension after a reboot on embedded systems!");
 		}
 		else {
 			if (!is_dir($config['plex']['storage_path'])) mkdir($config['plex']['storage_path'], 0775, true);
@@ -111,7 +116,7 @@ if (isset($_POST['save-install']) && $_POST['save-install']) {
 				exec("echo '{$date}: {$application} Extension successfully installed' > {$install_dir}plex/log/{$logfile}");
 			}
 			else {
-				$input_errors[] = sprintf(gtext("Installation file %s not found, installation aborted!"), "{$install_dir}plex/plexinit");
+				$input_errors[] = sprintf(gtxt("Installation file %s not found, installation aborted!"), "{$install_dir}plex/plexinit");
 				return;
 			}
 			mwexec("rm -rf ext/plex-install; rm -f plex-install.php", true);
@@ -123,7 +128,7 @@ if (isset($_POST['save-install']) && $_POST['save-install']) {
 if (isset($_POST['cancel']) && $_POST['cancel']) {
 	$return_val = mwexec("rm -rf ext/plex-install; rm -f plex-install.php", true);
 	if (is_dir("ext")) exec("if [ ! $(ls -A ext) ]; then rm -r ext; fi");
-	if ($return_val == 0) { $savemsg .= $application." ".gtext("not installed"); }
+	if ($return_val == 0) { $savemsg .= $application." ".gtxt("not installed"); }
 	else { $input_errors[] = $application." removal failed"; }
 	header("Location:index.php");
 }
@@ -142,12 +147,12 @@ include("fbegin.inc"); ?>
 		<?php if (!empty($savemsg)) print_info_box($savemsg);?>
 		<table width="100%" border="0" cellpadding="6" cellspacing="0">
 			<?php html_titleline($application);?>
-			<?php html_filechooser("storage_path", gtext("Common directory"), $pconfig['storage_path'], gtext("Common directory for the Plex Extension, a persistent place where the extension should installed, a directory below /mnt/."), $pconfig['storage_path'], true, 60);?>
-			<?php html_checkbox("path_check", gtext("Path check"), $pconfig['path_check'], gtext("If this option is selected no examination of the common directory path will be carried out, whether it was set to a directory below /mnt/."), "<b><font color='red'>".gtext("Please use this option only if you know what you are doing!")."</font></b>", false);?>
+			<?php html_filechooser("storage_path", gtxt("Common directory"), $pconfig['storage_path'], gtxt("Common directory for the Plex Extension, a persistent place where the extension should installed, a directory below /mnt/."), $pconfig['storage_path'], true, 60);?>
+			<?php html_checkbox("path_check", gtxt("Path check"), $pconfig['path_check'], gtxt("If this option is selected no examination of the common directory path will be carried out, whether it was set to a directory below /mnt/."), "<b><font color='red'>".gtxt("Please use this option only if you know what you are doing!")."</font></b>", false);?>
 		</table>
 		<div id="submit">
-			<input id="save-install" name="save-install" type="submit" class="formbtn" value="<?=gtext("Save & Install");?>" onclick="return confirm('<?=gtext("Ready to install Plex Media Server Extension?");?>')" />
-			<input id="cancel" name="cancel" type="submit" class="formbtn" value="<?=gtext("Cancel");?>"/>
+			<input id="save-install" name="save-install" type="submit" class="formbtn" value="<?=gtxt("Save & Install");?>" onclick="return confirm('<?=gtxt("Ready to install Plex Media Server Extension?");?>')" />
+			<input id="cancel" name="cancel" type="submit" class="formbtn" value="<?=gtxt("Cancel");?>"/>
 		</div>
 	</td></tr>
 	</table>
