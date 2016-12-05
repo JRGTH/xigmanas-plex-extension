@@ -2,7 +2,7 @@
 # plexinit.sh
 # Created by: J.M Rivera (http://forums.nas4free.org/viewtopic.php?f=71&t=11049)
 # Provide: Plex Media Server*
-# Require: NAS4Free 10.x and later version.
+# Require: NAS4Free 10.3 and later version.
 # *Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
 
 # Determine current working directory as absolute path.
@@ -11,14 +11,14 @@ CWDIR=$(dirname $(realpath $0))
 # Global variables.
 PLATFORM=`uname -p`
 PRODUCT=`uname -i`
-PRDVERSION=`uname -r | cut -d. -f1`
+PRDVERSION=`uname -r | cut -d '-' -f1 | tr -d '.'`
 PRDPLATFORM=`cat /etc/platform`
 SCRIPTNAME=`basename $0`
 APPVERSION=`cat ${CWDIR}/version 2> /dev/null`
-UNIONFS=`mount -t unionfs | grep "above" | grep -q "/usr/local"; echo $?`
+DATE=`date`
 APPNAME="Plex Extension"
 PKGCACHE="/var/cache/pkg"
-PKGMETA="/var/db/pkg"
+PKGDB="/var/db/pkg"
 PLEXCONFDIR="/var/etc/plexconf"
 COMPATPATH1="/usr/local/lib/compat"
 COMPATPATH2="/usr/local/lib32/compat"
@@ -32,6 +32,9 @@ RCDPATH="/usr/local/etc/rc.d"
 CONFIG="/cf/conf/config.xml"
 PRDNAME="plexmediaserver"
 CMDNAME="plexmediaserver"
+PKGFILE="*testing.zip"
+PKGURL="https://github.com/JRGTH/nas4free-plex-extension/archive/master.zip"
+VERFILE="https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/master/plex/version"
 
 error_notify()
 {
@@ -60,15 +63,20 @@ plex_initial_download()
 	if [ ! -f ${PLEXPATH}/Plex_Media_Server ]; then
 		# Fetch and install latest plex package.
 		pkg install -y ${PRDNAME}
+		# Re-check if Plex diretory/application exist.
+		if [ ! -f "${PLEXPATH}/Plex_Media_Server" ]; then
+			error_notify "Error: A problem has occurred while fetching/locating plexmediaserver."
+		fi
 	fi
 
+	# Create required directories.
+	/bin/mkdir -p ${CWDIR}/conf
+	/bin/mkdir -p ${CWDIR}/log
+
 	# Backup latest plex rcd after install if embedded.
-	if [ ${PRDPLATFORM} == "x64-embedded" ]; then
-		# Check if the system is running unionfs for /usr/local(above).
-		if  [ ${UNIONFS} -eq 1 ]; then
-			if [ -f ${PLEXRCD} ]; then
-				/bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying rcd file."
-			fi
+	if [ "${PRDPLATFORM}" == "x64-embedded" ]; then
+		if [ -f ${PLEXRCD} ]; then
+			/bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying rcd file."
 		fi
 	fi
 }
@@ -88,55 +96,71 @@ pkg_upgrade()
 	PLEXNEWVERSION=`pkg info -I plexmediaserver | cut -d' ' -f1 | cut -d- -f2 | tr -d .`
 
 	# Restart plex if version upgraded.
-	if [ ${PLEXNEWVERSION} -gt ${PLEXVERSION} ]; then
+	if [ "${PLEXNEWVERSION}" -gt "${PLEXVERSION}" ]; then
 		service ${CMDNAME} onerestart 2> /dev/null || ${PLEXRCD} onerestart
 	fi
 
 	# Backup latest plex rcd after upgrade if embedded.
-	if [ ${PRDPLATFORM} == "x64-embedded" ]; then
-		# Check if the system is running unionfs for /usr/local(above).
-		if  [ ${UNIONFS} -eq 1 ]; then
-			if [ -f ${PLEXRCD} ]; then
-				/bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying rcd file."
-			fi
+	if [ "${PRDPLATFORM}" == "x64-embedded" ]; then
+		if [ -f "${PLEXRCD}" ]; then
+			/bin/cp ${PLEXRCD} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying plex rc file."
 		fi
 	fi
 
 	# Check and upgrade extension package.
 	if [ -f ${CWDIR}/version ]; then
-		extenstion_upgrade
+		extension_upgrade
 	else
 		ext_initial_download
 	fi
 }
 
-extenstion_upgrade()
+extension_upgrade()
 {
-	# Create temporary folder for the upgrade process.
-	/bin/mkdir -p ${CWDIR}/update
-	/usr/bin/fetch -q -o ${CWDIR}/update https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/testing/plex/version || error_notify "Error: A problem has occurred while fetching version file."
-
-	# Compare version files and fetch latest package if available.
-	if [ -f ${CWDIR}/update/version ]; then
-		UPDATEVER=`cat ${CWDIR}/update/version | tr -d .`
-		CURRENTVER=`cat ${CWDIR}/version | tr -d .`
-		if [ ${UPDATEVER} -gt ${CURRENTVER} ]; then
-			/usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/testing.zip || error_notify "Error: A problem has occurred while fetching extension package."
-			/usr/bin/tar -xf ${CWDIR}/update/testing.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
-			/bin/chmod +x ${CWDIR}/update/plex/plexinit
-			/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
-
-			# If gui enable then copy new gui files.
-			GUI_STATUS=`cat ${CWDIR}/conf/plex_config | grep 'GUI_ENABLE=' | cut -d'"' -f2`
-			if [ "${GUI_STATUS}" == "YES" ]; then
-				/bin/cp -r ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
+	# Check if local .zip achive exist then auto-upgrade extension files, otherwise perform online upgrade.
+	echo "==> Looking for new ${APPNAME} package!"
+	if [ -f ${CWDIR}/${PKGFILE} ]; then
+		echo "==> New ${APPNAME} package found, performing upgrade..."
+		/bin/mkdir -p ${CWDIR}/update
+		/usr/bin/tar -xf ${CWDIR}/${PKGFILE} --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+		/bin/chmod +x ${CWDIR}/update/plex/plexinit
+		/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
+		/bin/rm -f ${CWDIR}/${PKGFILE}
+		/bin/rm -r ${CWDIR}/update
+		# Logging the update event.
+		UPDATEVERSION=`cat ${CWDIR}/version`
+		echo "${DATE}: ${APPNAME} upgraded to ${UPDATEVERSION}" >> ${CWDIR}/log/plex_ext.log
+		echo "==> ${APPNAME} package upgrade completed!"
+	else
+		# Perform an online extension upgrade.
+		/bin/mkdir -p ${CWDIR}/update
+		/usr/bin/fetch -adrvo ${CWDIR}/update --no-verify-peer --timeout=30 ${VERFILE} || error_notify "Error: A problem has occurred while fetching version file."
+		# Compare version files and fetch latest package if available.
+		if [ -f ${CWDIR}/update/version ]; then
+			UPDATEVER=`cat ${CWDIR}/update/version | tr -d .`
+			CURRENTVER=`cat ${CWDIR}/version | tr -d .`
+			if [ "${UPDATEVER}" -gt "${CURRENTVER}" ]; then
+				echo "==> New ${APPNAME} package found, performing upgrade..."
+				/usr/bin/fetch -avo ${CWDIR}/update --no-verify-peer --timeout=30 ${PKGURL} || error_notify "Error: A problem has occurred while fetching extension package."
+				/usr/bin/tar -xf ${CWDIR}/update/${PKGFILE} --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+				/bin/chmod +x ${CWDIR}/update/plex/plexinit
+				/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
+				/bin/rm -r ${CWDIR}/update
+				# Logging the update event.
+				UPDATEVERSION=`cat ${CWDIR}/version`
+				echo "${DATE}: ${APPNAME} upgraded to ${UPDATEVERSION}" >> ${CWDIR}/log/plex_ext.log
+				echo "==> ${APPNAME} package upgrade completed!"
+			else
+				echo "==> No new ${APPNAME} package available!"
+				/bin/rm -r ${CWDIR}/update
 			fi
-			# Perform cleanup.
-			/bin/rm -r ${CWDIR}/update
-		else
-			# Perform cleanup.
-			/bin/rm -r ${CWDIR}/update
 		fi
+	fi
+
+	# Check if gui enabled then copy/overwrite new files to www.
+	GUI_STATUS=`cat ${CWDIR}/conf/plex_config | grep 'GUI_ENABLE=' | cut -d'"' -f2`
+	if [ "${GUI_STATUS}" == "YES" ]; then
+		/bin/cp -r ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension gui files."
 	fi
 }
 
@@ -145,8 +169,8 @@ ext_initial_download()
 	# Always ensure the version file is present, otherwise update the extension files on startup.
 	if [ ! -f ${CWDIR}/version ]; then
 		/bin/mkdir -p ${CWDIR}/update
-		/usr/bin/fetch -q -o ${CWDIR}/update https://github.com/JRGTH/nas4free-plex-extension/archive/testing.zip || error_notify "Error: A problem has occurred while fetching extension package."
-		/usr/bin/tar -xf ${CWDIR}/update/testing.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+		/usr/bin/fetch -avo ${CWDIR}/update --no-verify-peer --timeout=30 ${PKGURL} || error_notify "Error: A problem has occurred while fetching extension package."
+		/usr/bin/tar -xf ${CWDIR}/update/${PKGFILE} --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 		/bin/chmod +x ${CWDIR}/update/plex/plexinit
 		/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
 		/bin/rm -r ${CWDIR}/update
@@ -156,7 +180,7 @@ ext_initial_download()
 product_check()
 {
 	# Check for working product.
-	if [ ${PRODUCT} == "NAS4FREE-x64" ]; then
+	if [ "${PRODUCT}" == "NAS4FREE-x64" ]; then
 		postinit_cmd
 		gui_start
 	fi
@@ -165,27 +189,22 @@ product_check()
 platform_check()
 {
 	# Check for working platform.
-	if [ ${PRDPLATFORM} == "x64-embedded" ] \
-		|| [ ${PRDPLATFORM} == "x64-liveCD" ] \
-			|| [ ${PRDPLATFORM} == "x64-liveUSB" ]; then
-		# Check if the system is running unionfs for /usr/local(above).
-		if  [ ${UNIONFS} -eq 1 ]; then
-			pkg_symlinkdir
-			compat_symlinkdir
-			plex_symlinkdir
-			plex_rcd_link
-		fi
+	if [ "${PRDPLATFORM}" == "x64-embedded" ]; then
+		pkg_symlinkdir
+		compat_symlinkdir
+		plex_symlinkdir
+		plex_rcd_link
 	fi
 }
 
 postinit_cmd()
 {
-	# Check and generate temporary php script for plexinit postinit command.
+	# Check and generate temporary php script for postinit command.
 	if ! /usr/bin/grep -q ${CWDIR}/plexinit ${CONFIG}; then
 		/usr/bin/touch ${CWDIR}/postinit || error_notify "Error: A problem has occurred while creating postinit file."
 		/bin/chmod +x ${CWDIR}/postinit
-		if [ ! ${PRDVERSION} -ge "11" ]; then
-			# Generate php script tor NAS4Free 10.x versions.
+		if [ ! "${PRDVERSION}" -ge "110" ]; then
+			# Generate php script tor NAS4Free 10.3 versions.
 			/bin/cat << EOF > ${CWDIR}/postinit
 <?php
 require_once("config.inc");
@@ -229,15 +248,18 @@ require_once("functions.inc");
 EOF
 		fi
 
+		# Create conf directory if doesn't exist.
+		if [ ! -d ${CWDIR}/conf ]; then
+			/bin/mkdir -p ${CWDIR}/conf
+		fi
+
 		# Execute temporary php script.
 		if [ "${OBI_INSTALL}" != "ON" ]; then
 			/usr/local/bin/php-cgi -f ${CWDIR}/postinit && rm ${CWDIR}/postinit
-			# To set enable for the GUI because at the installation Plex is started by default.
-			/bin/mkdir -p ${CWDIR}/conf
+			# To set enable for the gui because at the installation Plex is started by default.
 			/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" PLEX_ENABLE=YES GUI_ENABLE=YES >/dev/null 2>&1
 		else 
-			# To set enable for the GUI because at the installation Plex is started by default.
-			/bin/mkdir -p ${CWDIR}/conf
+			# To set enable for the gui because at the installation Plex is started by default.
 			/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" PLEX_ENABLE=YES GUI_ENABLE=YES >/dev/null 2>&1
 		fi
 	fi
@@ -245,7 +267,7 @@ EOF
 
 gui_start()
 {
-	# Initialize the extension GUI.
+	# Initialize the extension gui.
 	if [ -d ${CWDIR}/gui ]; then
 		# Always ensure the config directory/file exist.
 		if [ ! -f ${CWDIR}/conf/plex_config ]; then
@@ -259,7 +281,7 @@ gui_start()
 			/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 			/bin/mkdir -p ${PLEXCONFDIR}
 			/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFDIR}/
-			# Copy the GUI files.
+			# Copy the gui files.
 			/bin/cp -r ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
 		fi
 	fi
@@ -267,7 +289,7 @@ gui_start()
 
 gui_enable()
 {
-	#  Relink conf and copy the GUI files.
+	#  Relink conf and copy the gui files.
 	if [ -d ${CWDIR}/gui ]; then
 		/bin/mkdir -p ${PLEXCONFDIR}
 		/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFDIR}/
@@ -278,7 +300,7 @@ gui_enable()
 
 gui_disable()
 {
-	# Disable GUI if -t option specified.
+	# Disable gui if -t option specified.
 	if [ -d ${CWDIR}/gui ]; then
 		/bin/rm -f /usr/local/www/plex-gui.php
 		/bin/rm -rf /usr/local/www/ext/plex-gui
@@ -287,9 +309,9 @@ gui_disable()
 		/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" GUI_ENABLE=NO >/dev/null 2>&1
 	fi
 
-	# Remove empty ext folder to prevent null "Extensions" tab.
+	# Remove empty ext folder to prevent empty "Extensions" tab.
 	if [ -d "/usr/local/www/ext" ]; then
-		if ! [ "$(ls -A /usr/local/www/ext)" ]; then
+		if [ ! "$(ls -A /usr/local/www/ext)" ]; then
 			/bin/rm -r /usr/local/www/ext
 		fi
 	fi
@@ -308,69 +330,74 @@ plex_usergroup()
 
 pkg_symlinkdir()
 {
-	# Check and create/relink required symlinks/dirs for package cache and metadata.
-	if [ -d ${PKGCACHE} ]; then
+	# Rename old directories and maintain compatibility.
+	if [ -d ${CWDIR}/system/pkg/pkgcache ]; then
+		/bin/mv -f ${CWDIR}/system/pkg/pkgcache ${CWDIR}/system/pkg/cache
+	fi
+	if [ -d ${CWDIR}/system/pkg/pkgdb ]; then
+		/bin/mv -f ${CWDIR}/system/pkg/pkgdb ${CWDIR}/system/pkg/db
+	fi
+
+	# Check and create/relink required symlinks/dirs for package cache and db.
+	if [ -d "${PKGCACHE}" ]; then
 		/bin/rm -r ${PKGCACHE}
-		/bin/mkdir -p ${CWDIR}/system/pkg/pkgcache
-		/bin/ln -Ffhs ${CWDIR}/system/pkg/pkgcache ${PKGCACHE}
+		/bin/mkdir -p ${CWDIR}/system/pkg/cache
+		/bin/ln -Ffhs ${CWDIR}/system/pkg/cache ${PKGCACHE}
 	else
 		/bin/mkdir -m 0755 -p /var/cache
-		/bin/mkdir -p ${CWDIR}/system/pkg/pkgcache
-		/bin/ln -Ffhs ${CWDIR}/system/pkg/pkgcache ${PKGCACHE}
+		/bin/mkdir -p ${CWDIR}/system/pkg/cache
+		/bin/ln -Ffhs ${CWDIR}/system/pkg/cache ${PKGCACHE}
 	fi
-	if [ -d ${PKGMETA} ]; then
-		/bin/rm -r ${PKGMETA}
-		/bin/mkdir -p ${CWDIR}/system/pkg/pkgmeta
-		/bin/ln -Ffhs ${CWDIR}/system/pkg/pkgmeta ${PKGMETA}
+	if [ -d "${PKGDB}" ]; then
+		/bin/rm -r ${PKGDB}
+		/bin/mkdir -p ${CWDIR}/system/pkg/db
+		/bin/ln -Ffhs ${CWDIR}/system/pkg/db ${PKGDB}
 	else
-		/bin/mkdir -p ${CWDIR}/system/pkg/pkgmeta
-		/bin/ln -Ffhs ${CWDIR}/system/pkg/pkgmeta ${PKGMETA}
+		/bin/mkdir -p ${CWDIR}/system/pkg/db
+		/bin/ln -Ffhs ${CWDIR}/system/pkg/db ${PKGDB}
 	fi
 }
 
 compat_symlinkdir()
 {
-	# Name the old compat9x directory to compat.
-	COMPATDIR="compat9x"
-	if [ ! -d ${CWDIR}/system/${COMPATDIR} ]; then
-		if [ ${PRDVERSION} -ge "11" ]; then
-			COMPATDIR="compat"
-		fi
+	# Rename old directories and maintain compatibility.
+	if [ -d ${CWDIR}/system/compat9x ]; then
+		/bin/mv -f ${CWDIR}/system/compat9x ${CWDIR}/system/compat
 	fi
 
 	# Check and create/relink required symlinks/dirs for compat libs.
-	if [ ! -d ${COMPATPATH1} ]; then
+	if [ ! -d "${COMPATPATH1}" ]; then
 		/bin/mkdir -m 0755 -p /usr/local/lib
-		/bin/mkdir -p ${CWDIR}/system/${COMPATDIR}/lib/compat
-		/bin/ln -Ffhs ${CWDIR}/system/${COMPATDIR}/lib/compat ${COMPATPATH1}
+		/bin/mkdir -p ${CWDIR}/system/compat/lib/compat
+		/bin/ln -Ffhs ${CWDIR}/system/compat/lib/compat ${COMPATPATH1}
 	fi
-	if [ ! -d ${COMPATPATH2} ]; then
+	if [ ! -d "${COMPATPATH2}" ]; then
 		/bin/mkdir -m 0755 -p /usr/local/lib32
-		/bin/mkdir -p ${CWDIR}/system/${COMPATDIR}/lib32/compat
-		/bin/ln -Ffhs ${CWDIR}/system/${COMPATDIR}/lib32/compat ${COMPATPATH2}
+		/bin/mkdir -p ${CWDIR}/system/compat/lib32/compat
+		/bin/ln -Ffhs ${CWDIR}/system/compat/lib32/compat ${COMPATPATH2}
 	fi
-	if [ ! -d ${COMPATPATH3} ]; then
+	if [ ! -d "${COMPATPATH3}" ]; then
 		/bin/mkdir -m 0755 -p /usr/local/libdata
-		/bin/mkdir -p ${CWDIR}/system/${COMPATDIR}/libdata/ldconfig
-		/bin/ln -Ffhs ${CWDIR}/system/${COMPATDIR}/libdata/ldconfig ${COMPATPATH3}
+		/bin/mkdir -p ${CWDIR}/system/compat/libdata/ldconfig
+		/bin/ln -Ffhs ${CWDIR}/system/compat/libdata/ldconfig ${COMPATPATH3}
 	fi
-	if [ ! -d ${COMPATPATH4} ]; then
+	if [ ! -d "${COMPATPATH4}" ]; then
 		/bin/mkdir -m 0755 -p /usr/local/libdata
-		/bin/mkdir -p ${CWDIR}/system/${COMPATDIR}/libdata/ldconfig32
-		/bin/ln -Ffhs ${CWDIR}/system/${COMPATDIR}/libdata/ldconfig32 ${COMPATPATH4}
+		/bin/mkdir -p ${CWDIR}/system/compat/libdata/ldconfig32
+		/bin/ln -Ffhs ${CWDIR}/system/compat/libdata/ldconfig32 ${COMPATPATH4}
 	fi
 }
 
 plex_symlinkdir()
 {
 	# Check and create/relink required symlinks/dirs for plexmediaserver.
-	if [ ! -d ${RCDPATH} ]; then
+	if [ ! -d "${RCDPATH}" ]; then
 		/bin/mkdir -m 0755 -p ${RCDPATH}
 	fi
-	if [ -d ${CWDIR}/${PRDNAME} ]; then
+	if [ -d "${CWDIR}/${PRDNAME}" ]; then
 		/bin/mv ${CWDIR}/${PRDNAME} ${CWDIR}/system/${PRDNAME}
 	fi
-	if [ ! -d ${PLEXPATH} ]; then
+	if [ ! -d "${PLEXPATH}" ]; then
 		/bin/mkdir -p ${CWDIR}/system/${PRDNAME}
 		/bin/ln -Ffhs ${CWDIR}/system/${PRDNAME} /usr/local/share
 	fi
@@ -382,12 +409,9 @@ plex_symlinkdir()
 plex_rcd_link()
 {
 	# Restore current plex rcd if embedded.
-	if [ ${PRDPLATFORM} == "x64-embedded" ]; then
-		# Check if the system is running unionfs for /usr/local(above).
-		if  [ ${UNIONFS} -eq 1 ]; then
-			if [ -f ${CWDIR}/system/rc.d/${CMDNAME} ]; then
-				/bin/cp ${CWDIR}/system/rc.d/${CMDNAME} ${RCDPATH} || error_notify "Error: A problem has occurred while copying rcd file."
-			fi
+	if [ "${PRDPLATFORM}" == "x64-embedded" ]; then
+		if [ -f ${CWDIR}/system/rc.d/${CMDNAME} ]; then
+			/bin/cp ${CWDIR}/system/rc.d/${CMDNAME} ${RCDPATH} || error_notify "Error: A problem has occurred while copying rcd file."
 		fi
 	fi
 }
@@ -434,11 +458,11 @@ plex_rcparamstart()
 plex_init()
 {
 	# Check for system compatibility.
-	if [ ! ${PLATFORM} == "amd64" ]; then
+	if [ ! "${PLATFORM}" == "amd64" ]; then
 		echo "Unsupported platform!"; exit 1
 	fi 
 	# Check for product compatibility.
-	if [ ! ${PRDVERSION} -ge "10" ]; then
+	if [ ! "${PRDVERSION}" -ge "103" ]; then
 		echo "Unsupported version!"; exit 1
 	fi
 
