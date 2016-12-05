@@ -32,9 +32,9 @@ RCDPATH="/usr/local/etc/rc.d"
 CONFIG="/cf/conf/config.xml"
 PRDNAME="plexmediaserver"
 CMDNAME="plexmediaserver"
-PKGFILE="testing"
-PKGURL="https://github.com/JRGTH/nas4free-plex-extension/archive/${PKGFILE}.zip"
-VERFILE="https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/${PKGFILE}/plex/version"
+BRANCH="testing"
+GITURL="https://github.com/JRGTH/nas4free-plex-extension/archive/${BRANCH}.zip"
+VERFILE="https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/${BRANCH}/plex/version"
 
 error_notify()
 {
@@ -119,13 +119,13 @@ extension_upgrade()
 {
 	# Check if local .zip achive exist then auto-upgrade extension files, otherwise perform online upgrade.
 	echo "==> Looking for new ${APPNAME} package!"
-	if [ -f ${CWDIR}/${PKGFILE}.zip ]; then
+	if [ -f ${CWDIR}/*${BRANCH}.zip ]; then
 		echo "==> New ${APPNAME} package found, performing upgrade..."
 		/bin/mkdir -p ${CWDIR}/update
-		/usr/bin/tar -xf ${CWDIR}/${PKGFILE}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+		/usr/bin/tar -xf ${CWDIR}/*${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 		/bin/chmod +x ${CWDIR}/update/plex/plexinit
 		/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
-		/bin/rm -f ${CWDIR}/${PKGFILE}.zip
+		/bin/rm -f ${CWDIR}/*${BRANCH}.zip
 		/bin/rm -r ${CWDIR}/update
 		# Logging the update event.
 		UPDATEVERSION=`cat ${CWDIR}/version`
@@ -141,8 +141,8 @@ extension_upgrade()
 			CURRENTVER=`cat ${CWDIR}/version | tr -d .`
 			if [ "${UPDATEVER}" -gt "${CURRENTVER}" ]; then
 				echo "==> New ${APPNAME} package found, performing upgrade..."
-				/usr/bin/fetch -avo ${CWDIR}/update --no-verify-peer --timeout=30 ${PKGURL} || error_notify "Error: A problem has occurred while fetching extension package."
-				/usr/bin/tar -xf ${CWDIR}/update/${PKGFILE}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+				/usr/bin/fetch -avo ${CWDIR}/update --no-verify-peer --timeout=30 ${GITURL} || error_notify "Error: A problem has occurred while fetching extension package."
+				/usr/bin/tar -xf ${CWDIR}/update/*${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 				/bin/chmod +x ${CWDIR}/update/plex/plexinit
 				/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
 				/bin/rm -r ${CWDIR}/update
@@ -169,8 +169,8 @@ ext_initial_download()
 	# Always ensure the version file is present, otherwise update the extension files on startup.
 	if [ ! -f ${CWDIR}/version ]; then
 		/bin/mkdir -p ${CWDIR}/update
-		/usr/bin/fetch -avo ${CWDIR}/update --no-verify-peer --timeout=30 ${PKGURL} || error_notify "Error: A problem has occurred while fetching extension package."
-		/usr/bin/tar -xf ${CWDIR}/update/${PKGFILE}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+		/usr/bin/fetch -avo ${CWDIR}/update --no-verify-peer --timeout=30 ${GITURL} || error_notify "Error: A problem has occurred while fetching extension package."
+		/usr/bin/tar -xf ${CWDIR}/update/${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 		/bin/chmod +x ${CWDIR}/update/plex/plexinit
 		/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
 		/bin/rm -r ${CWDIR}/update
