@@ -19,7 +19,7 @@ DATE=`date`
 APPNAME="Plex Extension"
 PKGCACHE="/var/cache/pkg"
 PKGDB="/var/db/pkg"
-PLEXCONFDIR="/var/etc/plexconf"
+PLEXCONFLINK="/var/etc/plexconf"
 COMPATPATH1="/usr/local/lib/compat"
 COMPATPATH2="/usr/local/lib32/compat"
 COMPATPATH3="/usr/local/libdata/ldconfig"
@@ -134,7 +134,7 @@ extension_upgrade()
 	else
 		# Perform an online extension upgrade.
 		/bin/mkdir -p ${CWDIR}/update
-		/usr/bin/fetch -adrvo ${CWDIR}/update --no-verify-peer --timeout=30 ${VERFILE} || error_notify "Error: A problem has occurred while fetching version file."
+		/usr/bin/fetch -avo ${CWDIR}/update --no-verify-peer --timeout=30 ${VERFILE} || error_notify "Error: A problem has occurred while fetching version file."
 		# Compare version files and fetch latest package if available.
 		if [ -f ${CWDIR}/update/version ]; then
 			UPDATEVER=`cat ${CWDIR}/update/version | tr -d .`
@@ -279,8 +279,8 @@ gui_start()
 		if [ "${GUI_STATUS}" == "YES" ]; then
 			# Store the installation path and link conf.
 			/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" INSTALL_DIR=${CWDIR} >/dev/null 2>&1
-			/bin/mkdir -p ${PLEXCONFDIR}
-			/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFDIR}/
+			/bin/mkdir -p ${PLEXCONFLINK}
+			/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/
 			# Copy the gui files.
 			/bin/cp -r ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
 		fi
@@ -291,8 +291,8 @@ gui_enable()
 {
 	#  Relink conf and copy the gui files.
 	if [ -d ${CWDIR}/gui ]; then
-		/bin/mkdir -p ${PLEXCONFDIR}
-		/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFDIR}/
+		/bin/mkdir -p ${PLEXCONFLINK}
+		/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/
 		/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" GUI_ENABLE=YES >/dev/null 2>&1
 		/bin/cp -r ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
 	fi
@@ -305,7 +305,7 @@ gui_disable()
 		/bin/rm -f /usr/local/www/plex-gui.php
 		/bin/rm -rf /usr/local/www/ext/plex-gui
 		/bin/rm -f /usr/local/share/locale-plex
-		/bin/rm -rf ${PLEXCONFDIR}
+		/bin/rm -rf ${PLEXCONFLINK}
 		/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" GUI_ENABLE=NO >/dev/null 2>&1
 	fi
 
