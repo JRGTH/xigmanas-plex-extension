@@ -136,7 +136,7 @@ if ($_POST) {
 	if (isset($_POST['remove']) && $_POST['remove']) {
 		bindtextdomain("nas4free", $textdomain);
 		if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
-		if (is_dir($confdir)) mwexec("rm -rf {$confdir}", true);
+		if (is_dir($confdir)) mwexec("rm -Rf {$confdir}", true);
 		mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
 		mwexec("{$rootfolder}/plexinit -t", true);
 		exec("echo '{$date}: Extension GUI successfully removed' >> {$logfile}");
@@ -147,7 +147,7 @@ if ($_POST) {
 	if (isset($_POST['uninstall']) && $_POST['uninstall']) {
 		bindtextdomain("nas4free", $textdomain);
 		if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
-		if (is_dir($confdir)) mwexec("rm -rf {$confdir}", true);
+		if (is_dir($confdir)) mwexec("rm -Rf {$confdir}", true);
 		mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
 		mwexec("{$rootfolder}/plexinit -t", true);
 		mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);

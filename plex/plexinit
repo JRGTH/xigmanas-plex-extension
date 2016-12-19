@@ -30,6 +30,7 @@ PLEXPID="/var/run/plex/plex.pid"
 SUPPORTPATH="${CWDIR}/plexdata"
 RCDPATH="/usr/local/etc/rc.d"
 CONFIG="/cf/conf/config.xml"
+FULLPRDNAME="Plex Media Server"
 PRDNAME="plexmediaserver"
 CMDNAME="plexmediaserver"
 BRANCH="master"
@@ -95,8 +96,11 @@ pkg_upgrade()
 	# Set plex new version variable.
 	PLEXNEWVERSION=`pkg info -I plexmediaserver | cut -d' ' -f1 | cut -d- -f2 | tr -d .`
 
-	# Restart plex if version upgraded.
+	# Logging and plex restart after upgrade.
 	if [ "${PLEXNEWVERSION}" -gt "${PLEXVERSION}" ]; then
+		PLEXNEWVER=`pkg info -I plexmediaserver | cut -d' ' -f1 | cut -d- -f2`
+		echo "${DATE}: ${FULLPRDNAME} upgraded to ${PLEXNEWVER}" >> ${CWDIR}/log/plex_ext.log
+		echo "==> ${FULLPRDNAME} package upgrade completed!"
 		service ${CMDNAME} onerestart 2> /dev/null || ${PLEXRCD} onerestart
 	fi
 
@@ -124,9 +128,9 @@ extension_upgrade()
 		/bin/mkdir -p ${CWDIR}/update
 		/usr/bin/tar -xf ${CWDIR}/*${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 		/bin/chmod +x ${CWDIR}/update/plex/plexinit
-		/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
+		/bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
 		/bin/rm -f ${CWDIR}/*${BRANCH}.zip
-		/bin/rm -r ${CWDIR}/update
+		/bin/rm -R ${CWDIR}/update
 		update_guifiles
 		# Logging the update event.
 		UPDATEVERSION=`cat ${CWDIR}/version`
@@ -145,8 +149,8 @@ extension_upgrade()
 				/usr/bin/fetch -ao ${CWDIR}/update --no-verify-peer --timeout=30 ${GITURL} || error_notify "Error: A problem has occurred while fetching extension package."
 				/usr/bin/tar -xf ${CWDIR}/update/*${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 				/bin/chmod +x ${CWDIR}/update/plex/plexinit
-				/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
-				/bin/rm -r ${CWDIR}/update
+				/bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
+				/bin/rm -R ${CWDIR}/update
 				update_guifiles
 				# Logging the update event.
 				UPDATEVERSION=`cat ${CWDIR}/version`
@@ -154,7 +158,7 @@ extension_upgrade()
 				echo "==> ${APPNAME} package upgrade completed!"
 			else
 				echo "==> No new ${APPNAME} package available!"
-				/bin/rm -r ${CWDIR}/update
+				/bin/rm -R ${CWDIR}/update
 			fi
 		fi
 	fi
@@ -168,8 +172,8 @@ ext_initial_download()
 		/usr/bin/fetch -ao ${CWDIR}/update --no-verify-peer --timeout=30 ${GITURL} || error_notify "Error: A problem has occurred while fetching extension package."
 		/usr/bin/tar -xf ${CWDIR}/update/${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 		/bin/chmod +x ${CWDIR}/update/plex/plexinit
-		/bin/cp -rf ${CWDIR}/update/plex/* ${CWDIR}/
-		/bin/rm -r ${CWDIR}/update
+		/bin/cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
+		/bin/rm -R ${CWDIR}/update
 	fi
 }
 
@@ -178,7 +182,7 @@ update_guifiles()
 	# Check if gui enabled then copy/overwrite new files to www.
 	GUI_STATUS=`cat ${CWDIR}/conf/plex_config | grep 'GUI_ENABLE=' | cut -d'"' -f2`
 	if [ "${GUI_STATUS}" == "YES" ]; then
-		/bin/cp -r ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension gui files."
+		/bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension gui files."
 	fi
 }
 
@@ -287,7 +291,7 @@ gui_start()
 			/bin/mkdir -p ${PLEXCONFLINK}
 			/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/
 			# Copy the gui files.
-			/bin/cp -r ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
+			/bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
 		fi
 	fi
 }
@@ -299,7 +303,7 @@ gui_enable()
 		/bin/mkdir -p ${PLEXCONFLINK}
 		/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/
 		/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" GUI_ENABLE=YES >/dev/null 2>&1
-		/bin/cp -r ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
+		/bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
 	fi
 }
 
@@ -308,16 +312,16 @@ gui_disable()
 	# Disable gui if -t option specified.
 	if [ -d ${CWDIR}/gui ]; then
 		/bin/rm -f /usr/local/www/plex-gui.php
-		/bin/rm -rf /usr/local/www/ext/plex-gui
+		/bin/rm -Rf /usr/local/www/ext/plex-gui
 		/bin/rm -f /usr/local/share/locale-plex
-		/bin/rm -rf ${PLEXCONFLINK}
+		/bin/rm -Rf ${PLEXCONFLINK}
 		/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" GUI_ENABLE=NO >/dev/null 2>&1
 	fi
 
 	# Remove empty ext folder to prevent empty "Extensions" tab.
 	if [ -d "/usr/local/www/ext" ]; then
 		if [ ! "$(ls -A /usr/local/www/ext)" ]; then
-			/bin/rm -r /usr/local/www/ext
+			/bin/rm -R /usr/local/www/ext
 		fi
 	fi
 }
@@ -345,7 +349,7 @@ pkg_symlinkdir()
 
 	# Check and create/relink required symlinks/dirs for package cache and db.
 	if [ -d "${PKGCACHE}" ]; then
-		/bin/rm -r ${PKGCACHE}
+		/bin/rm -R ${PKGCACHE}
 		/bin/mkdir -p ${CWDIR}/system/pkg/cache
 		/bin/ln -Ffhs ${CWDIR}/system/pkg/cache ${PKGCACHE}
 	else
@@ -354,7 +358,7 @@ pkg_symlinkdir()
 		/bin/ln -Ffhs ${CWDIR}/system/pkg/cache ${PKGCACHE}
 	fi
 	if [ -d "${PKGDB}" ]; then
-		/bin/rm -r ${PKGDB}
+		/bin/rm -R ${PKGDB}
 		/bin/mkdir -p ${CWDIR}/system/pkg/db
 		/bin/ln -Ffhs ${CWDIR}/system/pkg/db ${PKGDB}
 	else
