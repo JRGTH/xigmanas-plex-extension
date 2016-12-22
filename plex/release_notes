@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.2.059....Removed time zone from date string
 4.2.058....Added pkg upgrade logging and minor fixes
 4.2.057....Reduce output verbosity on upgrades
 4.2.056....Overall improvements and fixes release
