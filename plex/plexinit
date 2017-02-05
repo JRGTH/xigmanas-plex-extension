@@ -5,11 +5,11 @@
 # Require: NAS4Free 10.3 and later version.
 # *Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
 
-# Determine current working directory as absolute path.
+# Determine full working directory.
 CWDIR=$(dirname $(realpath $0))
 
 # Global variables.
-PLATFORM=`uname -p`
+PLATFORM=`uname -m`
 PRODUCT=`uname -i`
 PRDVERSION=`uname -r | cut -d '-' -f1 | tr -d '.'`
 PRDPLATFORM=`cat /etc/platform`
