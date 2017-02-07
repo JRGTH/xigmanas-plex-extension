@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.2.061....Update German translation file
 4.2.060....Update es, it and ru translations
 4.2.059....Removed time zone from date string
 4.2.058....Added pkg upgrade logging and minor fixes
