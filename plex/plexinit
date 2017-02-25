@@ -237,23 +237,19 @@ require_once("functions.inc");
 \$cmd = dirname(__FILE__)."/plexinit";
 \$name = "Plex Extension";
 \$comment = "Plex Media Server";
-array_make_branch(\$config,'rc','param');
-	if (isset(\$config['rc']['param'])) {
-		\$add_plex_rc = (false === array_search_ex(\$name, \$config['rc']['param'], 'value'));
-	} else {
-	\$add_plex_rc = true;
-	}
-	if(\$add_plex_rc) {
-		\$rc_param = [];
-		\$rc_param['uuid'] = uuid();
-		\$rc_param['name'] = \$name;
-		\$rc_param['value'] = \$cmd;
-		\$rc_param['comment'] = \$comment;
-		\$rc_param['typeid'] = '2';
-		\$rc_param['enable'] = true;
-		\$config['rc']['param'][] = \$rc_param;
-		write_config();
-	}
+\$rc = &array_make_branch(\$config,'rc','param'); 
+if(false === array_search_ex(\$name,\$rc,'name')):
+	\$rc_param = [];
+	\$rc_param['uuid'] = uuid();
+	\$rc_param['name'] = \$name;
+	\$rc_param['value'] = \$cmd;
+	\$rc_param['comment'] = \$comment;
+	\$rc_param['typeid'] = '2';
+	\$rc_param['enable'] = true;
+	\$rc[] = \$rc_param;
+	write_config();
+endif;
+unset(\$rc);
 ?>
 EOF
 		fi

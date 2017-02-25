@@ -3,39 +3,40 @@
 ===============================
 Version    Description
 
+4.2.064....Optimized postinit command creation, text edits.
 4.2.063....Fix postinit command creation.
-4.2.062....Add Swedish translation, thanks to Anders Malm
-4.2.061....Update German translation file
-4.2.060....Update es, it and ru translations
-4.2.059....Removed time zone from date string
-4.2.058....Added pkg upgrade logging and minor fixes
-4.2.057....Reduce output verbosity on upgrades
-4.2.056....Overall improvements and fixes release
-4.1.055....Remove obsolete files
-4.1.054....Correcting version number
-4.1.053....Add new installer, logging support and improvements
-4.1.052....Add gui installer, fixes and cleanup
-4.1.051....Cleanup unused code
-4.1.050....Revert version file to default location
-4.1.049....Fix for default config restore
-4.1.048....Rework for sysrc config, gtext and improvements
-4.1.047....Added conf directory verification
-4.1.046....Added support for NAS4Free 11.x versions
-4.1.045....Adjust readme information
-4.1.044....Adjust readme information
-4.1.043....Minor fix to don't remove dependencies
-4.1.042....Fix for live media platforms
-4.1.041....Minor fix on uninstall
-4.1.040....Minor updates and revision
-4.1.039....Fixed upgrade fail and minor improvements
-4.1.038....Support for unionfs installs
-4.1.037....Added auto restart on upgrades and minor fixes
-4.1.036....Overall consistency improvements and fixes
-4.1.035....Added enable checkbox and customizable backup directory
-4.1.034....Fix IP address not always displayed
-4.1.033....Improved auto refresh info
-4.1.032....Revert release notes link
-4.1.031....Added release notes link and updated gui
-4.1.030....Added product version auto refresh, added release notes
-4.1.029....Updated readme files
-4.1.028....First Public Release
+4.2.062....Add Swedish translation, thanks to Anders Malm.
+4.2.061....Update German translation file.
+4.2.060....Update es, it and ru translations.
+4.2.059....Removed time zone from date string.
+4.2.058....Added pkg upgrade logging and minor fixes.
+4.2.057....Reduce output verbosity on upgrades.
+4.2.056....Overall improvements and fixes release.
+4.1.055....Remove obsolete files.
+4.1.054....Correcting version number.
+4.1.053....Add new installer, logging support and improvements.
+4.1.052....Add gui installer, fixes and cleanup.
+4.1.051....Cleanup unused code.
+4.1.050....Revert version file to default location.
+4.1.049....Fix for default config restore.
+4.1.048....Rework for sysrc config, gtext and improvements.
+4.1.047....Added conf directory verification.
+4.1.046....Added support for NAS4Free 11.x versions.
+4.1.045....Adjust readme information.
+4.1.044....Adjust readme information.
+4.1.043....Minor fix to don't remove dependencies.
+4.1.042....Fix for live media platforms.
+4.1.041....Minor fix on uninstall.
+4.1.040....Minor updates and revision.
+4.1.039....Fixed upgrade fail and minor improvements.
+4.1.038....Support for unionfs installs.
+4.1.037....Added auto restart on upgrades and minor fixes.
+4.1.036....Overall consistency improvements and fixes.
+4.1.035....Added enable checkbox and customizable backup directory.
+4.1.034....Fix IP address not always displayed.
+4.1.033....Improved auto refresh info.
+4.1.032....Revert release notes link.
+4.1.031....Added release notes link and updated gui.
+4.1.030....Added product version auto refresh, added release notes.
+4.1.029....Updated readme files.
+4.1.028....First Public Release.
