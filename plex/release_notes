@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.2.063....Fix postinit command creation.
 4.2.062....Add Swedish translation, thanks to Anders Malm
 4.2.061....Update German translation file
 4.2.060....Update es, it and ru translations

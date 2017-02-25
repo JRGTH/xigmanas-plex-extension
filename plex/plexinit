@@ -213,7 +213,7 @@ postinit_cmd()
 		/usr/bin/touch ${CWDIR}/postinit || error_notify "Error: A problem has occurred while creating postinit file."
 		/bin/chmod +x ${CWDIR}/postinit
 		if [ ! "${PRDVERSION}" -ge "110" ]; then
-			# Generate php script tor NAS4Free 10.3 versions.
+			# Generate php script for NAS4Free 10.3 versions.
 			/bin/cat << EOF > ${CWDIR}/postinit
 <?php
 require_once("config.inc");
@@ -229,7 +229,7 @@ require_once("functions.inc");
 ?>
 EOF
 		else
-			# Generate php script tor NAS4Free 11.x versions.
+			# Generate php script for NAS4Free 11.x versions.
 			/bin/cat << EOF > ${CWDIR}/postinit
 <?php
 require_once("config.inc");
@@ -237,20 +237,21 @@ require_once("functions.inc");
 \$cmd = dirname(__FILE__)."/plexinit";
 \$name = "Plex Extension";
 \$comment = "Plex Media Server";
+array_make_branch(\$config,'rc','param');
 	if (isset(\$config['rc']['param'])) {
-		\$add_rc_for_plex = (false === array_search_ex(\$name, \$config['rc']['param'], 'value'));
+		\$add_plex_rc = (false === array_search_ex(\$name, \$config['rc']['param'], 'value'));
 	} else {
-	\$add_rc_for_plex = true;
+	\$add_plex_rc = true;
 	}
-	if(\$add_rc_for_plex) {
-		\$r_param = [];
-		\$r_param['uuid'] = uuid();
-		\$r_param['name'] = \$name;
-		\$r_param['value'] = \$cmd;
-		\$r_param['comment'] = \$comment;
-		\$r_param['typeid'] = '2';
-		\$r_param['enable'] = true;
-		\$config['rc']['param'][] = \$r_param;
+	if(\$add_plex_rc) {
+		\$rc_param = [];
+		\$rc_param['uuid'] = uuid();
+		\$rc_param['name'] = \$name;
+		\$rc_param['value'] = \$cmd;
+		\$rc_param['comment'] = \$comment;
+		\$rc_param['typeid'] = '2';
+		\$rc_param['enable'] = true;
+		\$config['rc']['param'][] = \$rc_param;
 		write_config();
 	}
 ?>
