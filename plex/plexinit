@@ -1,8 +1,7 @@
 #!/bin/sh
 # plexinit
 # Created by: J.M Rivera (http://forums.nas4free.org/viewtopic.php?f=71&t=11184)
-# Provide: Plex Media Server*
-# Require: NAS4Free 10.3 and later version.
+# Plex Media Server Extension for NAS4Free 10.3 and later version.
 # *Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
 
 # Determine full working directory.
@@ -30,6 +29,7 @@ PLEXPID="/var/run/plex/plex.pid"
 SUPPORTPATH="${CWDIR}/plexdata"
 RCDPATH="/usr/local/etc/rc.d"
 CONFIG="/cf/conf/config.xml"
+RCCONF="/etc/rc.conf"
 FULLPRDNAME="Plex Media Server"
 PRDNAME="plexmediaserver"
 CMDNAME="plexmediaserver"
@@ -49,8 +49,7 @@ update_freebsdconf()
 	# Replace old FreeBSD.conf to fetch latest packages.
 	if [ -f /etc/pkg/FreeBSD.conf ]; then 
 		if /bin/cat "/etc/pkg/FreeBSD.conf" | grep -q "quarterly"; then
-			/usr/bin/sed -e "s=quarterly=latest=" /etc/pkg/FreeBSD.conf > /etc/pkg/FreeBSD.conf~
-			/bin/mv /etc/pkg/FreeBSD.conf~ /etc/pkg/FreeBSD.conf || error_notify "Error: A problem has occurred while renaming conf file."
+			/usr/bin/sed -i '' -E s/"quarterly"/"latest"/g /etc/pkg/FreeBSD.conf || error_notify "Error: A problem has occurred while renaming conf file."
 		fi
 	fi
 }
@@ -441,13 +440,13 @@ ext_enable_disable()
 plex_rcparamstart()
 {
 	# Plex Media Server rc parameters.
-	if ! /bin/cat "/etc/rc.conf" | grep -q "${CMDNAME}_enable=\"NO\""; then
+	if ! grep -q "${CMDNAME}_enable=\"NO\"" ${RCCONF}; then
 		/usr/sbin/sysrc ${CMDNAME}_enable="NO" >/dev/null 2>&1
 	fi
-	if ! /bin/cat "/etc/rc.conf" | grep -q "${CMDNAME}_support_path=\"${SUPPORTPATH}\""; then
+	if ! grep -q "${CMDNAME}_support_path=\"${SUPPORTPATH}\"" ${RCCONF}; then
 		/usr/sbin/sysrc ${CMDNAME}_support_path="${SUPPORTPATH}" >/dev/null 2>&1
 	fi
-	if ! /bin/cat "/etc/rc.conf" | grep -q "${CMDNAME}_maxplugins=\"6\""; then
+	if ! grep -q "${CMDNAME}_maxplugins=\"6\"" ${RCCONF}; then
 		/usr/sbin/sysrc ${CMDNAME}_maxplugins="6" >/dev/null 2>&1
 	fi
 
