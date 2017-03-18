@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.2.066....Add Ukrainian translation, thanks to uniss.
 4.2.065....Minor code consistency improvements.
 4.2.064....Optimized postinit command creation, text edits.
 4.2.063....Fix postinit command creation.
