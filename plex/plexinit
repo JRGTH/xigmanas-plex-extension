@@ -49,7 +49,7 @@ update_freebsdconf()
 	# Replace old FreeBSD.conf to fetch latest packages.
 	if [ -f /etc/pkg/FreeBSD.conf ]; then 
 		if /bin/cat "/etc/pkg/FreeBSD.conf" | grep -q "quarterly"; then
-			/usr/bin/sed -i '' -E s/"quarterly"/"latest"/g /etc/pkg/FreeBSD.conf || error_notify "Error: A problem has occurred while renaming conf file."
+			/usr/bin/sed -i '' -E "s=quarterly=latest=" /etc/pkg/FreeBSD.conf || error_notify "Error: A problem has occurred while renaming conf file."
 		fi
 	fi
 }
