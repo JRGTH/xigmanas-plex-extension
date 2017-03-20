@@ -99,7 +99,7 @@ pkg_upgrade()
 	if [ "${PLEXNEWVERSION}" -gt "${PLEXVERSION}" ]; then
 		PLEXNEWVER=`pkg info -I plexmediaserver | cut -d' ' -f1 | cut -d- -f2`
 		echo "${DATE}: ${FULLPRDNAME} upgraded to ${PLEXNEWVER}" >> ${CWDIR}/log/plex_ext.log
-		echo "==> ${FULLPRDNAME} package upgrade completed!"
+		echo "${FULLPRDNAME} package upgrade completed!"
 		service ${CMDNAME} onerestart 2> /dev/null || ${PLEXRCD} onerestart
 	fi
 
@@ -121,9 +121,9 @@ pkg_upgrade()
 extension_upgrade()
 {
 	# Check if local .zip achive exist then auto-upgrade extension files, otherwise perform online upgrade.
-	echo "==> Looking for new ${APPNAME} package!"
+	echo "Looking for new ${APPNAME} package!"
 	if [ -f ${CWDIR}/*${BRANCH}.zip ]; then
-		echo "==> New ${APPNAME} package found, performing upgrade..."
+		echo "New ${APPNAME} package found, performing upgrade..."
 		/bin/mkdir -p ${CWDIR}/update
 		/usr/bin/tar -xf ${CWDIR}/*${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 		/bin/chmod +x ${CWDIR}/update/plex/plexinit
@@ -134,7 +134,7 @@ extension_upgrade()
 		# Logging the update event.
 		UPDATEVERSION=`cat ${CWDIR}/version`
 		echo "${DATE}: ${APPNAME} upgraded to ${UPDATEVERSION}" >> ${CWDIR}/log/plex_ext.log
-		echo "==> ${APPNAME} package upgrade completed!"
+		echo "${APPNAME} package upgrade completed!"
 	else
 		# Perform an online extension upgrade.
 		/bin/mkdir -p ${CWDIR}/update
@@ -144,7 +144,7 @@ extension_upgrade()
 			UPDATEVER=`cat ${CWDIR}/update/version | tr -d .`
 			CURRENTVER=`cat ${CWDIR}/version | tr -d .`
 			if [ "${UPDATEVER}" -gt "${CURRENTVER}" ]; then
-				echo "==> New ${APPNAME} package found, performing upgrade..."
+				echo "New ${APPNAME} package found, performing upgrade..."
 				/usr/bin/fetch -ao ${CWDIR}/update --no-verify-peer --timeout=30 ${GITURL} || error_notify "Error: A problem has occurred while fetching extension package."
 				/usr/bin/tar -xf ${CWDIR}/update/*${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 				/bin/chmod +x ${CWDIR}/update/plex/plexinit
@@ -154,9 +154,9 @@ extension_upgrade()
 				# Logging the update event.
 				UPDATEVERSION=`cat ${CWDIR}/version`
 				echo "${DATE}: ${APPNAME} upgraded to ${UPDATEVERSION}" >> ${CWDIR}/log/plex_ext.log
-				echo "==> ${APPNAME} package upgrade completed!"
+				echo "${APPNAME} package upgrade completed!"
 			else
-				echo "==> No new ${APPNAME} package available!"
+				echo "No new ${APPNAME} package available!"
 				/bin/rm -R ${CWDIR}/update
 			fi
 		fi

@@ -56,6 +56,7 @@ $configfile = "{$rootfolder}/conf/plex_config";
 $versionfile = "{$rootfolder}/version";
 $date = strftime('%c');
 $logfile = "{$rootfolder}/log/plex_ext.log";
+$logevent = "{$rootfolder}/log/plex_last_event.log";
 
 if ($rootfolder == "") $input_errors[] = gtext("Extension installed with fault");
 else {
@@ -84,11 +85,11 @@ if ($_POST) {
 		if ($return_val == 0) {
 			$savemsg .= gtext("Plex Media Server started successfully.");
 			exec("echo '{$date}: {$application} successfully started' >> {$logfile}");
-			}
+		}
 		else {
 			$input_errors[] = gtext("Plex Media Server startup failed.");
 			exec("echo '{$date}: {$application} startup failed' >> {$logfile}");
-			}
+		}
 	}
 
 	if (isset($_POST['stop']) && $_POST['stop']) {
@@ -96,11 +97,11 @@ if ($_POST) {
 		if ($return_val == 0) {
 			$savemsg .= gtext("Plex Media Server stopped successfully.");
 			exec("echo '{$date}: {$application} successfully stopped' >> {$logfile}");
-			}
+		}
 		else {
 			$input_errors[] = gtext("Plex Media Server stop failed.");
 			exec("echo '{$date}: {$application} stop failed' >> {$logfile}");
-			}
+		}
 	}
 
 	if (isset($_POST['restart']) && $_POST['restart']) {
@@ -108,29 +109,41 @@ if ($_POST) {
 		if ($return_val == 0) {
 			$savemsg .= gtext("Plex Media Server restarted successfully.");
 			exec("echo '{$date}: {$application} successfully restarted' >> {$logfile}");
-			}
+		}
 		else {
 			$input_errors[] = gtext("Plex Media Server restart failed.");
 			exec("echo '{$date}: {$application} restart failed' >> {$logfile}");
-			}
+		}
 	}
 
-	if (isset($_POST['upgrade']) && $_POST['upgrade']) {
-		$return_val = mwexec("{$rootfolder}/plexinit -u", true);
-		if ($return_val == 0) { $savemsg .= gtext("Upgrade command successfully executed."); }
-		else { $input_errors[] = gtext("An error has occurred during upgrade process."); }
-	}
+	if(isset($_POST['upgrade']) && $_POST['upgrade']):
+		$cmd = sprintf('%1$s/plexinit -u > %2$s',$rootfolder,$logevent);
+		$return_val = 0;
+		$output = [];
+		exec($cmd,$output,$return_val);
+		if($return_val == 0):
+			ob_start();
+			include("{$logevent}");
+			$ausgabe = ob_get_contents();
+			ob_end_clean(); 
+			$savemsg .= str_replace("\n", "<br />", $ausgabe)."<br />";
+		else:
+			$input_errors[] = gtext('An error has occurred during upgrade process.');
+			$cmd = sprintf('echo %s: %s An error has occurred during upgrade process. >> %s',$date,$application,$logfile);
+			exec($cmd);
+		endif;
+	endif;
 
 	if (isset($_POST['backup']) && $_POST['backup']) {
 		$return_val = mwexec("mkdir -p {$backup_path} && cd {$rootfolder} && tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar {$backup_path}", true);
 		if ($return_val == 0) {
 			$savemsg .= gtext("Plexdata backup created successfully in {$backup_path}.");
 			exec("echo '{$date}: Plexdata backup successfully created' >> {$logfile}");
-			}
+		}
 		else {
 			$input_errors[] = gtext("Plexdata backup failed.");
 			exec("echo '{$date}: Plexdata backup failed' >> {$logfile}");
-			}
+		}
 	}
 
 	if (isset($_POST['remove']) && $_POST['remove']) {
@@ -199,11 +212,11 @@ if ($_POST) {
 			if ($return_val == 0) {
 				$savemsg .= gtext("Plex Media Server stopped successfully.");
 				exec("echo '{$date}: Extension settings saved and disabled' >> {$logfile}");
-				}
+			}
 			else {
 				$input_errors[] = gtext("Plex Media Server stop failed.");
 				exec("echo '{$date}: {$application} stop failed' >> {$logfile}");
-				}
+			}
 		}
 	}
 }
