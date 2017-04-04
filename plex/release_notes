@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.2.069....Minor code consistency improvements.
 4.2.068....Added verbosity output on upgrade process.
 4.2.067....Fix update command for pkg config.
 4.2.066....Add Ukrainian translation, thanks to uniss.

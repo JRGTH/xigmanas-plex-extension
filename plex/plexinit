@@ -16,6 +16,7 @@ SCRIPTNAME=`basename $0`
 APPVERSION=`cat ${CWDIR}/version 2> /dev/null`
 DATE=`date +"%a %b %d %T %Y"`
 APPNAME="Plex Extension"
+PKGCONF="/etc/pkg/FreeBSD.conf"
 PKGCACHE="/var/cache/pkg"
 PKGDB="/var/db/pkg"
 PLEXCONFLINK="/var/etc/plexconf"
@@ -46,10 +47,10 @@ error_notify()
 
 update_freebsdconf()
 {
-	# Replace old FreeBSD.conf to fetch latest packages.
-	if [ -f /etc/pkg/FreeBSD.conf ]; then 
-		if /bin/cat "/etc/pkg/FreeBSD.conf" | grep -q "quarterly"; then
-			/usr/bin/sed -i '' -E "s=quarterly=latest=" /etc/pkg/FreeBSD.conf || error_notify "Error: A problem has occurred while renaming conf file."
+	# Update FreeBSD.conf to fetch latest packages.
+	if [ -f ${PKGCONF} ]; then 
+		if /usr/bin/grep -q "quarterly" ${PKGCONF}; then
+			/usr/bin/sed -i '' -E "s/quarterly/latest/g" ${PKGCONF} || error_notify "Error: A problem has occurred while renaming conf file."
 		fi
 	fi
 }
@@ -440,13 +441,13 @@ ext_enable_disable()
 plex_rcparamstart()
 {
 	# Plex Media Server rc parameters.
-	if ! grep -q "${CMDNAME}_enable=\"NO\"" ${RCCONF}; then
+	if ! /usr/bin/grep -q "${CMDNAME}_enable=\"NO\"" ${RCCONF}; then
 		/usr/sbin/sysrc ${CMDNAME}_enable="NO" >/dev/null 2>&1
 	fi
-	if ! grep -q "${CMDNAME}_support_path=\"${SUPPORTPATH}\"" ${RCCONF}; then
+	if ! /usr/bin/grep -q "${CMDNAME}_support_path=\"${SUPPORTPATH}\"" ${RCCONF}; then
 		/usr/sbin/sysrc ${CMDNAME}_support_path="${SUPPORTPATH}" >/dev/null 2>&1
 	fi
-	if ! grep -q "${CMDNAME}_maxplugins=\"6\"" ${RCCONF}; then
+	if ! /usr/bin/grep -q "${CMDNAME}_maxplugins=\"6\"" ${RCCONF}; then
 		/usr/sbin/sysrc ${CMDNAME}_maxplugins="6" >/dev/null 2>&1
 	fi
 
