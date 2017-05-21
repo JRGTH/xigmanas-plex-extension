@@ -19,6 +19,7 @@ APPNAME="Plex Extension"
 PKGCONF="/etc/pkg/FreeBSD.conf"
 PKGCACHE="/var/cache/pkg"
 PKGDB="/var/db/pkg"
+PLEXCONF="/conf/plex_config"
 PLEXCONFLINK="/var/etc/plexconf"
 COMPATPATH1="/usr/local/lib/compat"
 COMPATPATH2="/usr/local/lib32/compat"
@@ -180,7 +181,7 @@ ext_initial_download()
 update_guifiles()
 {
 	# Check if gui enabled then copy/overwrite new files to www.
-	GUI_STATUS=`cat ${CWDIR}/conf/plex_config | grep 'GUI_ENABLE=' | cut -d'"' -f2`
+	GUI_STATUS=`grep 'GUI_ENABLE=' ${CWDIR}${PLEXCONF} | cut -d'"' -f2`
 	if [ "${GUI_STATUS}" == "YES" ]; then
 		/bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension gui files."
 	fi
@@ -263,10 +264,10 @@ EOF
 		if [ "${OBI_INSTALL}" != "ON" ]; then
 			/usr/local/bin/php-cgi -f ${CWDIR}/postinit && rm ${CWDIR}/postinit
 			# To set enable for the gui because at the installation Plex is started by default.
-			/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" PLEX_ENABLE=YES GUI_ENABLE=YES >/dev/null 2>&1
+			/usr/sbin/sysrc -f "${CWDIR}${PLEXCONF}" PLEX_ENABLE=YES GUI_ENABLE=YES >/dev/null 2>&1
 		else 
 			# To set enable for the gui because at the installation Plex is started by default.
-			/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" PLEX_ENABLE=YES GUI_ENABLE=YES >/dev/null 2>&1
+			/usr/sbin/sysrc -f "${CWDIR}${PLEXCONF}" PLEX_ENABLE=YES GUI_ENABLE=YES >/dev/null 2>&1
 		fi
 	fi
 }
@@ -276,15 +277,15 @@ gui_start()
 	# Initialize the extension gui.
 	if [ -d ${CWDIR}/gui ]; then
 		# Always ensure the config directory/file exist.
-		if [ ! -f ${CWDIR}/conf/plex_config ]; then
+		if [ ! -f ${CWDIR}${PLEXCONF} ]; then
 			# Restore default configuration.
 			/bin/mkdir -p ${CWDIR}/conf
-			/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" PLEX_ENABLE=YES GUI_ENABLE=YES >/dev/null 2>&1
+			/usr/sbin/sysrc -f "${CWDIR}${PLEXCONF}" PLEX_ENABLE=YES GUI_ENABLE=YES >/dev/null 2>&1
 		fi
-		GUI_STATUS=`cat ${CWDIR}/conf/plex_config | grep 'GUI_ENABLE=' | cut -d'"' -f2`
+		GUI_STATUS=`grep 'GUI_ENABLE=' ${CWDIR}${PLEXCONF} | cut -d'"' -f2`
 		if [ "${GUI_STATUS}" == "YES" ]; then
 			# Store the installation path and link conf.
-			/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" INSTALL_DIR=${CWDIR} >/dev/null 2>&1
+			/usr/sbin/sysrc -f "${CWDIR}${PLEXCONF}" INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 			/bin/mkdir -p ${PLEXCONFLINK}
 			/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/
 			# Copy the gui files.
@@ -299,7 +300,7 @@ gui_enable()
 	if [ -d ${CWDIR}/gui ]; then
 		/bin/mkdir -p ${PLEXCONFLINK}
 		/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/
-		/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" GUI_ENABLE=YES >/dev/null 2>&1
+		/usr/sbin/sysrc -f "${CWDIR}${PLEXCONF}" GUI_ENABLE=YES >/dev/null 2>&1
 		/bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
 	fi
 }
@@ -312,7 +313,7 @@ gui_disable()
 		/bin/rm -Rf /usr/local/www/ext/plex-gui
 		/bin/rm -f /usr/local/share/locale-plex
 		/bin/rm -Rf ${PLEXCONFLINK}
-		/usr/sbin/sysrc -f "${CWDIR}/conf/plex_config" GUI_ENABLE=NO >/dev/null 2>&1
+		/usr/sbin/sysrc -f "${CWDIR}${PLEXCONF}" GUI_ENABLE=NO >/dev/null 2>&1
 	fi
 
 	# Remove empty ext folder to prevent empty "Extensions" tab.
@@ -426,9 +427,9 @@ ext_enable_disable()
 {
 	# Start plex extension gui if enabled otherwise start plex cli version.
 	if [ -d ${CWDIR}/gui ]; then
-		GUI_STATUS=`cat ${CWDIR}/conf/plex_config | grep 'GUI_ENABLE=' | cut -d'"' -f2`
+		GUI_STATUS=`grep 'GUI_ENABLE=' ${CWDIR}${PLEXCONF} | cut -d'"' -f2`
 		if [ "${GUI_STATUS}" == "YES" ]; then
-			PLEX_STATUS=`cat ${CWDIR}/conf/plex_config | grep 'PLEX_ENABLE=' | cut -d'"' -f2`
+			PLEX_STATUS=`grep 'PLEX_ENABLE=' ${CWDIR}${PLEXCONF} | cut -d'"' -f2`
 			if [ "${PLEX_STATUS}" == "NO" ]; then
 				exit
 			fi
