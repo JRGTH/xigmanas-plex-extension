@@ -43,20 +43,35 @@ require("guiconfig.inc");
 $application = "Plex Media Server";
 $pgtitle = array(gtext("Extensions"), "Plex Media Server");
 
-// Initialize some variables.
-if (is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
-	for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) { if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) break; ++$i; }
+// For NAS4Free 10.x versions.
+$return_val = mwexec("/bin/cat /etc/prd.version | cut -d'.' -f1 | grep '10'", true);
+if ($return_val == 0) {
+	if (is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
+		for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) { if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) break; ++$i; }
+	}
 }
+
+// Initialize some variables.
 //$rootfolder = dirname($config['rc']['postinit']['cmd'][$i]);
 $pidfile = "/var/run/plex/plex.pid";
 $confdir = "/var/etc/plexconf";
-$cwdir = exec("/bin/cat {$confdir}/conf/plex_config | grep 'INSTALL_DIR=' | cut -d'\"' -f2");
+$cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' {$confdir}/conf/plex_config | cut -d'\"' -f2");
 $rootfolder = $cwdir;
 $configfile = "{$rootfolder}/conf/plex_config";
 $versionfile = "{$rootfolder}/version";
 $date = strftime('%c');
 $logfile = "{$rootfolder}/log/plex_ext.log";
 $logevent = "{$rootfolder}/log/plex_last_event.log";
+
+// Set the installed Plex package name.
+$return_val = mwexec("/usr/bin/grep 'PLEX_PASS=' {$confdir}/conf/plex_config", true);
+if ($return_val == 0) {
+	$prdname = "plexmediaserver-plexpass";
+}
+else {
+	$prdname = "plexmediaserver";
+}
+
 
 if ($rootfolder == "") $input_errors[] = gtext("Extension installed with fault");
 else {
@@ -93,7 +108,7 @@ if ($_POST) {
 	}
 
 	if (isset($_POST['stop']) && $_POST['stop']) {
-		$return_val = mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
+		$return_val = mwexec("{$rootfolder}/plexinit -p", true);
 		if ($return_val == 0) {
 			$savemsg .= gtext("Plex Media Server stopped successfully.");
 			exec("echo '{$date}: {$application} successfully stopped' >> {$logfile}");
@@ -164,20 +179,26 @@ if ($_POST) {
 		mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
 		mwexec("{$rootfolder}/plexinit -t", true);
 		mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
-		mwexec("pkg delete -y plexmediaserver", true);
-		if (isset($_POST['plexdata'])) { $uninstall_cmd = "rm -Rf '{$rootfolder}/backup' '{$rootfolder}/conf' '{$rootfolder}/gui' '{$rootfolder}/locale-plex' '{$rootfolder}/plexdata' '{$rootfolder}/system' '{$rootfolder}/plexinit' '{$rootfolder}/README' '{$rootfolder}/release_notes' '{$rootfolder}/version'"; }
-		else { $uninstall_cmd = "rm -Rf '{$rootfolder}/backup' '{$rootfolder}/conf' '{$rootfolder}/gui' '{$rootfolder}/locale-plex' '{$rootfolder}/system' '{$rootfolder}/plexinit' '{$rootfolder}/README' '{$rootfolder}/release_notes' '{$rootfolder}/version'"; }
+		mwexec("pkg delete -y {$prdname}", true);
+		if (isset($_POST['plexdata'])) { $uninstall_cmd = "rm -Rf '{$rootfolder}/backup' '{$rootfolder}/conf' '{$rootfolder}/gui' '{$rootfolder}/locale-plex' '{$rootfolder}/log' '{$rootfolder}/plexdata' '{$rootfolder}/system' '{$rootfolder}/plexinit' '{$rootfolder}/README' '{$rootfolder}/release_notes' '{$rootfolder}/version'"; }
+		else { $uninstall_cmd = "rm -Rf '{$rootfolder}/backup' '{$rootfolder}/conf' '{$rootfolder}/gui' '{$rootfolder}/locale-plex' '{$rootfolder}/log' '{$rootfolder}/system' '{$rootfolder}/plexinit' '{$rootfolder}/README' '{$rootfolder}/release_notes' '{$rootfolder}/version'"; }
 		mwexec($uninstall_cmd, true);
-		if (is_link("/usr/local/share/plexmediaserver")) mwexec("rm /usr/local/share/plexmediaserver", true);
+		if (is_link("/usr/local/share/{$prdname}")) mwexec("rm /usr/local/share/{$prdname}", true);
 		if (is_link("/var/cache/pkg")) mwexec("rm /var/cache/pkg", true);
 		if (is_link("/var/db/pkg")) mwexec("rm /var/db/pkg && mkdir /var/db/pkg", true);
-		if (is_array($config['rc']['postinit']) && is_array($config['rc']['postinit']['cmd'])) {
-			for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) {
-				if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) { unset($config['rc']['postinit']['cmd'][$i]); }
-				++$i;
+		
+		// Remove postinit cmd in NAS4Free 10.x versions.
+		$return_val = mwexec("/bin/cat /etc/prd.version | cut -d'.' -f1 | grep '10'", true);
+			if ($return_val == 0) {
+				if (is_array($config['rc']['postinit']) && is_array($config['rc']['postinit']['cmd'])) {
+					for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) {
+					if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) { unset($config['rc']['postinit']['cmd'][$i]); }
+					++$i;
+				}
 			}
+			write_config();
 		}
-		write_config();
+		
 		// Remove postinit cmd in NAS4Free later versions.
 		if (is_array($config['rc']) && is_array($config['rc']['param'])) {
 			$postinit_cmd = "{$rootfolder}/plexinit";
@@ -226,7 +247,8 @@ $plexenable = exec("/bin/cat {$configfile} | grep 'PLEX_ENABLE=' | cut -d'\"' -f
 $backup_path = exec("/bin/cat {$configfile} | grep 'BACKUP_DIR=' | cut -d'\"' -f2");
 
 function get_version_plex() {
-	exec("pkg info -I plexmediaserver", $result);
+	global $prdname;
+	exec("/usr/local/sbin/pkg info -I {$prdname}", $result);
 	return ($result[0]);
 }
 
@@ -238,14 +260,14 @@ function get_version_ext() {
 
 function get_process_info() {
 	global $pidfile;
-	if (exec("ps acx | grep -f $pidfile")) { $state = '<a style=" background-color: #00ff00; ">&nbsp;&nbsp;<b>'.gtext("running").'</b>&nbsp;&nbsp;</a>'; }
+	if (exec("/bin/ps acx | grep -f {$pidfile}")) { $state = '<a style=" background-color: #00ff00; ">&nbsp;&nbsp;<b>'.gtext("running").'</b>&nbsp;&nbsp;</a>'; }
 	else { $state = '<a style=" background-color: #ff0000; ">&nbsp;&nbsp;<b>'.gtext("stopped").'</b>&nbsp;&nbsp;</a>'; }
 	return ($state);
 }
 
 function get_process_pid() {
 	global $pidfile;
-	exec("cat $pidfile", $state); 
+	exec("/bin/cat {$pidfile}", $state); 
 	return ($state[0]);
 }
 
