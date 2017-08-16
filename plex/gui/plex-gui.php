@@ -44,7 +44,7 @@ $application = "Plex Media Server";
 $pgtitle = array(gtext("Extensions"), "Plex Media Server");
 
 // For NAS4Free 10.x versions.
-$return_val = mwexec("/bin/cat /etc/prd.version | cut -d'.' -f1 | grep '10'", true);
+$return_val = mwexec("/bin/cat /etc/prd.version | cut -d'.' -f1 | /usr/bin/grep '10'", true);
 if ($return_val == 0) {
 	if (is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
 		for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) { if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) break; ++$i; }
@@ -84,10 +84,10 @@ else {
 if (is_file("{$rootfolder}/postinit")) unlink("{$rootfolder}/postinit");
 
 // Set default backup directory.
-if (1 == mwexec("/bin/cat {$configfile} | grep 'BACKUP_DIR='")) {
+if (1 == mwexec("/bin/cat {$configfile} | /usr/bin/grep 'BACKUP_DIR='")) {
 	if (is_file("{$configfile}")) exec("/usr/sbin/sysrc -f {$configfile} BACKUP_DIR={$rootfolder}/backup");
 }
-$backup_path = exec("/bin/cat {$configfile} | grep 'BACKUP_DIR=' | cut -d'\"' -f2");
+$backup_path = exec("/bin/cat {$configfile} | /usr/bin/grep 'BACKUP_DIR=' | cut -d'\"' -f2");
 
 // Retrieve IP@.
 $ipaddr = get_ipaddr($config['interfaces']['lan']['if']);
@@ -188,7 +188,7 @@ if ($_POST) {
 		if (is_link("/var/db/pkg")) mwexec("rm /var/db/pkg && mkdir /var/db/pkg", true);
 		
 		// Remove postinit cmd in NAS4Free 10.x versions.
-		$return_val = mwexec("/bin/cat /etc/prd.version | cut -d'.' -f1 | grep '10'", true);
+		$return_val = mwexec("/bin/cat /etc/prd.version | cut -d'.' -f1 | /usr/bin/grep '10'", true);
 			if ($return_val == 0) {
 				if (is_array($config['rc']['postinit']) && is_array($config['rc']['postinit']['cmd'])) {
 					for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) {
@@ -243,8 +243,8 @@ if ($_POST) {
 }
 
 // Update some variables.
-$plexenable = exec("/bin/cat {$configfile} | grep 'PLEX_ENABLE=' | cut -d'\"' -f2");
-$backup_path = exec("/bin/cat {$configfile} | grep 'BACKUP_DIR=' | cut -d'\"' -f2");
+$plexenable = exec("/bin/cat {$configfile} | /usr/bin/grep 'PLEX_ENABLE=' | cut -d'\"' -f2");
+$backup_path = exec("/bin/cat {$configfile} | /usr/bin/grep 'BACKUP_DIR=' | cut -d'\"' -f2");
 
 function get_version_plex() {
 	global $prdname;
@@ -260,7 +260,7 @@ function get_version_ext() {
 
 function get_process_info() {
 	global $pidfile;
-	if (exec("/bin/ps acx | grep -f {$pidfile}")) { $state = '<a style=" background-color: #00ff00; ">&nbsp;&nbsp;<b>'.gtext("running").'</b>&nbsp;&nbsp;</a>'; }
+	if (exec("/bin/ps acx | /usr/bin/grep -f {$pidfile}")) { $state = '<a style=" background-color: #00ff00; ">&nbsp;&nbsp;<b>'.gtext("running").'</b>&nbsp;&nbsp;</a>'; }
 	else { $state = '<a style=" background-color: #ff0000; ">&nbsp;&nbsp;<b>'.gtext("stopped").'</b>&nbsp;&nbsp;</a>'; }
 	return ($state);
 }

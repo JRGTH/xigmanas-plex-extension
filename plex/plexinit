@@ -114,7 +114,7 @@ pkg_upgrade()
 		PLEXNEWVER=`pkg info -I ${PRDNAME}${PKG_ARG} | cut -d' ' -f1 | cut -d- -f2`
 		echo "${DATE}: ${FULLPRDNAME} upgraded to ${PLEXNEWVER}" >> ${CWDIR}/log/plex_ext.log
 		echo "${FULLPRDNAME} package upgrade completed!"
-		service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
+		/usr/sbin/service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
 	fi
 
 	# Backup latest plex rcd after upgrade if embedded.
@@ -465,8 +465,8 @@ plex_rcparamstart()
 	fi
 
 	# Start Plex Media Server.
-	if ! /bin/ps -acx | grep -q "Plex \Media \Server"; then
-		service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart
+	if ! /bin/ps -acx | /usr/bin/grep -q "Plex \Media \Server"; then
+		/usr/sbin/service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart
 	fi
 	# Logg on startup success.
 	if [ $? -eq 0 ]; then
@@ -517,9 +517,9 @@ while getopts ":abotgsprvuh" option; do
 		[o]) OBI_INSTALL="ON";; # To prevent nested PHP-CGI call for installation with OBI.
 		[g]) gui_enable; exit 0 ;; # For enable the addon gui.
 		[t]) gui_disable; exit 0 ;; # For disable the addon gui.
-		[s]) service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart; exit 0 ;;
-		[p]) service ${CMDNAME}${CMD_ARG} onestop 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestop && /bin/rm -f ${PLEXPID}; exit 0 ;;
-		[r]) service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart; exit 0 ;;
+		[s]) /usr/sbin/service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart; exit 0 ;;
+		[p]) /usr/sbin/service ${CMDNAME}${CMD_ARG} onestop 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestop && /bin/rm -f ${PLEXPID}; exit 0 ;;
+		[r]) /usr/sbin/service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart; exit 0 ;;
 		[v]) echo "${APPNAME} ${APPVERSION}"; pkg info -I ${PRDNAME}${PKG_ARG}; exit 0 ;;
 		[u]) pkg_upgrade; exit 0 ;;
 		[?]) echo "Invalid option, -h for usage."; exit 1 ;;
