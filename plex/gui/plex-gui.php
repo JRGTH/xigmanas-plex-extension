@@ -72,7 +72,6 @@ else {
 	$prdname = "plexmediaserver";
 }
 
-
 if ($rootfolder == "") $input_errors[] = gtext("Extension installed with fault");
 else {
 // Initialize locales.
@@ -198,7 +197,7 @@ if ($_POST) {
 			}
 			write_config();
 		}
-		
+
 		// Remove postinit cmd in NAS4Free later versions.
 		if (is_array($config['rc']) && is_array($config['rc']['param'])) {
 			$postinit_cmd = "{$rootfolder}/plexinit";

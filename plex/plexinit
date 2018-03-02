@@ -349,14 +349,6 @@ plex_usergroup()
 
 pkg_symlinkdir()
 {
-	# Rename old directories and maintain compatibility.
-	if [ -d ${CWDIR}/system/pkg/pkgcache ]; then
-		/bin/mv -f ${CWDIR}/system/pkg/pkgcache ${CWDIR}/system/pkg/cache
-	fi
-	if [ -d ${CWDIR}/system/pkg/pkgdb ]; then
-		/bin/mv -f ${CWDIR}/system/pkg/pkgdb ${CWDIR}/system/pkg/db
-	fi
-
 	# Check and create/relink required symlinks/dirs for package cache and db.
 	if [ -d "${PKGCACHE}" ]; then
 		/bin/rm -R ${PKGCACHE}
@@ -379,11 +371,6 @@ pkg_symlinkdir()
 
 compat_symlinkdir()
 {
-	# Rename old directories and maintain compatibility.
-	if [ -d ${CWDIR}/system/compat9x ]; then
-		/bin/mv -f ${CWDIR}/system/compat9x ${CWDIR}/system/compat
-	fi
-
 	# Check and create/relink required symlinks/dirs for compat libs.
 	if [ ! -d "${COMPATPATH1}" ]; then
 		/bin/mkdir -m 0755 -p /usr/local/lib
@@ -451,7 +438,7 @@ ext_enable_disable()
 	fi
 }
 
-plex_rcparamstart()
+plex_rcparam_start()
 {
 	# Plex Media Server rc parameters.
 	if ! /usr/bin/grep -q "${CMDNAME}${CMD_ARG}_enable=\"NO\"" ${RCCONF}; then
@@ -497,7 +484,7 @@ plex_init()
 	plex_usergroup
 	product_check
 	ext_enable_disable
-	plex_rcparamstart
+	plex_rcparam_start
 }
 
 # Plexinit common control switches.

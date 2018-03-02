@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.2.074....Minor code changes, remove obsolete code.
 4.2.073....Added Kurdish and Greek .mo translation files.
 4.2.072....Add command full path, add Kurdish translation thanks to Rokar, update Greek translation thanks to ChriZathens.
 4.2.071....Add Plexpass support and code improvements.
