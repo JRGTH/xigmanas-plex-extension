@@ -40,7 +40,7 @@ GITURL="https://github.com/JRGTH/nas4free-plex-extension/archive/${BRANCH}.zip"
 VERFILE="https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/${BRANCH}/plex/version"
 
 # Set optional plexpass variables.
-if [ -f ${CWDIR}${PLEXCONF} ]; then
+if [ -f "${CWDIR}${PLEXCONF}" ]; then
 	PLEXPASS_ENABLE=`/usr/bin/grep 'PLEX_PASS=' ${CWDIR}${PLEXCONF} 2> /dev/null | cut -d'"' -f2`
 	if [ "${PLEXPASS_ENABLE}" == "YES" ]; then
 		export CMD_ARG="_plexpass"
@@ -61,9 +61,9 @@ error_notify()
 update_freebsdconf()
 {
 	# Update FreeBSD.conf to fetch latest packages.
-	if [ -f ${PKGCONF} ]; then 
+	if [ -f "${PKGCONF}" ]; then 
 		if /usr/bin/grep -q "quarterly" ${PKGCONF}; then
-			/usr/bin/sed -i '' -E "s/quarterly/latest/g" ${PKGCONF} || error_notify "Error: A problem has occurred while renaming conf file."
+			/usr/bin/sed -i '' -E "s/quarterly/latest/g" ${PKGCONF} || error_notify "Error: A problem has occurred while updating FreeBSD.conf file."
 		fi
 	fi
 }
@@ -74,7 +74,7 @@ plex_initial_download()
 	update_freebsdconf
 
 	# Check if Plex already exist.
-	if [ ! -f ${PLEXPATH}${PKG_ARG}/Plex_Media_Server ]; then
+	if [ ! -f "${PLEXPATH}${PKG_ARG}/Plex_Media_Server" ]; then
 		# Fetch and install latest plex package.
 		pkg install -y ${PRDNAME}${PKG_ARG}
 		# Re-check if Plex diretory/application exist.
@@ -89,7 +89,7 @@ plex_initial_download()
 
 	# Backup latest plex rcd after install if embedded.
 	if [ "${PRDPLATFORM}" == "x64-embedded" ]; then
-		if [ -f ${PLEXRCD}${CMD_ARG} ]; then
+		if [ -f "${PLEXRCD}${CMD_ARG}" ]; then
 			/bin/cp ${PLEXRCD}${CMD_ARG} ${CWDIR}/system/rc.d || error_notify "Error: A problem has occurred while copying rcd file."
 		fi
 	fi
@@ -125,7 +125,7 @@ pkg_upgrade()
 	fi
 
 	# Check and upgrade extension package.
-	if [ -f ${CWDIR}/version ]; then
+	if [ -f "${CWDIR}/version" ]; then
 		extension_upgrade
 	else
 		ext_initial_download
@@ -136,7 +136,7 @@ extension_upgrade()
 {
 	# Check if local .zip achive exist then auto-upgrade extension files, otherwise perform online upgrade.
 	echo "Looking for new ${APPNAME} package!"
-	if [ -f ${CWDIR}/*${BRANCH}.zip ]; then
+	if [ -f "${CWDIR}/*${BRANCH}.zip" ]; then
 		echo "New ${APPNAME} package found, performing upgrade..."
 		/bin/mkdir -p ${CWDIR}/update
 		/usr/bin/tar -xf ${CWDIR}/*${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
@@ -154,7 +154,7 @@ extension_upgrade()
 		/bin/mkdir -p ${CWDIR}/update
 		/usr/bin/fetch -ao ${CWDIR}/update --no-verify-peer --timeout=30 ${VERFILE} || error_notify "Error: A problem has occurred while fetching version file."
 		# Compare version files and fetch latest package if available.
-		if [ -f ${CWDIR}/update/version ]; then
+		if [ -f "${CWDIR}/update/version" ]; then
 			UPDATEVER=`/bin/cat ${CWDIR}/update/version | tr -d .`
 			CURRENTVER=`/bin/cat ${CWDIR}/version | tr -d .`
 			if [ "${UPDATEVER}" -gt "${CURRENTVER}" ]; then
@@ -180,7 +180,7 @@ extension_upgrade()
 ext_initial_download()
 {
 	# Always ensure the version file is present, otherwise update the extension files on startup.
-	if [ ! -f ${CWDIR}/version ]; then
+	if [ ! -f "${CWDIR}/version" ]; then
 		/bin/mkdir -p ${CWDIR}/update
 		/usr/bin/fetch -ao ${CWDIR}/update --no-verify-peer --timeout=30 ${GITURL} || error_notify "Error: A problem has occurred while fetching extension package."
 		/usr/bin/tar -xf ${CWDIR}/update/${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
@@ -268,7 +268,7 @@ EOF
 		fi
 
 		# Create conf directory if doesn't exist.
-		if [ ! -d ${CWDIR}/conf ]; then
+		if [ ! -d "${CWDIR}/conf" ]; then
 			/bin/mkdir -p ${CWDIR}/conf
 		fi
 
@@ -287,9 +287,9 @@ EOF
 gui_start()
 {
 	# Initialize the extension gui.
-	if [ -d ${CWDIR}/gui ]; then
+	if [ -d "${CWDIR}/gui" ]; then
 		# Always ensure the config directory/file exist.
-		if [ ! -f ${CWDIR}${PLEXCONF} ]; then
+		if [ ! -f "${CWDIR}${PLEXCONF}" ]; then
 			# Restore default configuration.
 			/bin/mkdir -p ${CWDIR}/conf
 			/usr/sbin/sysrc -f "${CWDIR}${PLEXCONF}" PLEX_ENABLE=YES GUI_ENABLE=YES >/dev/null 2>&1
@@ -309,7 +309,7 @@ gui_start()
 gui_enable()
 {
 	#  Relink conf and copy the gui files.
-	if [ -d ${CWDIR}/gui ]; then
+	if [ -d "${CWDIR}/gui" ]; then
 		/bin/mkdir -p ${PLEXCONFLINK}
 		/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/
 		/usr/sbin/sysrc -f "${CWDIR}${PLEXCONF}" GUI_ENABLE=YES >/dev/null 2>&1
@@ -320,7 +320,7 @@ gui_enable()
 gui_disable()
 {
 	# Disable gui if -t option specified.
-	if [ -d ${CWDIR}/gui ]; then
+	if [ -d "${CWDIR}/gui" ]; then
 		/bin/rm -f /usr/local/www/plex-gui.php
 		/bin/rm -Rf /usr/local/www/ext/plex-gui
 		/bin/rm -f /usr/local/share/locale-plex
@@ -407,7 +407,7 @@ plex_symlinkdir()
 		/bin/mkdir -p ${CWDIR}/system/${PRDNAME}${PKG_ARG}
 		/bin/ln -Ffhs ${CWDIR}/system/${PRDNAME}${PKG_ARG} /usr/local/share
 	fi
-	if [ ! -d ${CWDIR}/system/rc.d ]; then
+	if [ ! -d "${CWDIR}/system/rc.d" ]; then
 		/bin/mkdir -p ${CWDIR}/system/rc.d
 	fi
 }
@@ -425,7 +425,7 @@ plex_rcd_link()
 ext_enable_disable()
 {
 	# Start plex extension gui if enabled otherwise start plex cli version.
-	if [ -d ${CWDIR}/gui ]; then
+	if [ -d "${CWDIR}/gui" ]; then
 		GUI_STATUS=`/usr/bin/grep 'GUI_ENABLE=' ${CWDIR}${PLEXCONF} | cut -d'"' -f2`
 		if [ "${GUI_STATUS}" == "YES" ]; then
 			PLEX_STATUS=`/usr/bin/grep 'PLEX_ENABLE=' ${CWDIR}${PLEXCONF} | cut -d'"' -f2`
