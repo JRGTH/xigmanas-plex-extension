@@ -299,7 +299,7 @@ gui_start()
 			# Store the installation path and link conf.
 			/usr/sbin/sysrc -f "${CWDIR}${PLEXCONF}" INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 			/bin/mkdir -p ${PLEXCONFLINK}
-			/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/
+			/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/conf
 			# Copy the gui files.
 			/bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
 		fi
@@ -311,7 +311,7 @@ gui_enable()
 	#  Relink conf and copy the gui files.
 	if [ -d "${CWDIR}/gui" ]; then
 		/bin/mkdir -p ${PLEXCONFLINK}
-		/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/
+		/bin/ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/conf
 		/usr/sbin/sysrc -f "${CWDIR}${PLEXCONF}" GUI_ENABLE=YES >/dev/null 2>&1
 		/bin/cp -R ${CWDIR}/gui/* /usr/local/www/ || error_notify "Error: A problem has occurred while copying extension files."
 	fi
@@ -403,9 +403,9 @@ plex_symlinkdir()
 	if [ -d "${CWDIR}/${PRDNAME}${PKG_ARG}" ]; then
 		/bin/mv ${CWDIR}/${PRDNAME}${PKG_ARG} ${CWDIR}/system/${PRDNAME}${PKG_ARG}
 	fi
-	if [ ! -d "${PLEXPATH}" ]; then
+	if [ ! -d "${PLEXPATH}${PKG_ARG}" ]; then
 		/bin/mkdir -p ${CWDIR}/system/${PRDNAME}${PKG_ARG}
-		/bin/ln -Ffhs ${CWDIR}/system/${PRDNAME}${PKG_ARG} /usr/local/share
+		/bin/ln -Ffhs ${CWDIR}/system/${PRDNAME}${PKG_ARG} /usr/local/share/${PRDNAME}${PKG_ARG}
 	fi
 	if [ ! -d "${CWDIR}/system/rc.d" ]; then
 		/bin/mkdir -p ${CWDIR}/system/rc.d
