@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.2.079....Reuse pkg symlink environment if exist.
 4.2.078....Fix symlinks creation.
 4.2.077....Minor code consistency improvements.
 4.2.076....Update Ukrainian translation.

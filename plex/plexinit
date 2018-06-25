@@ -350,19 +350,25 @@ plex_usergroup()
 pkg_symlinkdir()
 {
 	# Check and create/relink required symlinks/dirs for package cache and db.
+	# This may be already performed by any prevously installed Extension,
+	# supporting this aproach, in that case will reuse the existing environment.
 	if [ -d "${PKGCACHE}" ]; then
-		/bin/rm -R ${PKGCACHE}
-		/bin/mkdir -p ${CWDIR}/system/pkg/cache
-		/bin/ln -Ffhs ${CWDIR}/system/pkg/cache ${PKGCACHE}
+		if [ ! -L "${PKGCACHE}" ]; then
+			/bin/rm -R ${PKGCACHE}
+			/bin/mkdir -p ${CWDIR}/system/pkg/cache
+			/bin/ln -Ffhs ${CWDIR}/system/pkg/cache ${PKGCACHE}
+		fi
 	else
 		/bin/mkdir -m 0755 -p /var/cache
 		/bin/mkdir -p ${CWDIR}/system/pkg/cache
 		/bin/ln -Ffhs ${CWDIR}/system/pkg/cache ${PKGCACHE}
 	fi
 	if [ -d "${PKGDB}" ]; then
-		/bin/rm -R ${PKGDB}
-		/bin/mkdir -p ${CWDIR}/system/pkg/db
-		/bin/ln -Ffhs ${CWDIR}/system/pkg/db ${PKGDB}
+		if [ ! -L "${PKGDB}" ]; then
+			/bin/rm -R ${PKGDB}
+			/bin/mkdir -p ${CWDIR}/system/pkg/db
+			/bin/ln -Ffhs ${CWDIR}/system/pkg/db ${PKGDB}
+		fi
 	else
 		/bin/mkdir -p ${CWDIR}/system/pkg/db
 		/bin/ln -Ffhs ${CWDIR}/system/pkg/db ${PKGDB}
