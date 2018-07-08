@@ -202,7 +202,7 @@ update_guifiles()
 product_check()
 {
 	# Check for working product.
-	if [ "${PRODUCT}" == "NAS4FREE-x64" ]; then
+	if [ "${PRODUCT}" == "NAS4FREE-x64" ] || [ "${PRODUCT}" == "XIGMANAS-x64" ]; then
 		postinit_cmd
 		gui_start
 	fi

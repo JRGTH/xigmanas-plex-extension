@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.2.080....Added support for XigmaNAS.
 4.2.079....Reuse pkg symlink environment if exist.
 4.2.078....Fix symlinks creation.
 4.2.077....Minor code consistency improvements.
