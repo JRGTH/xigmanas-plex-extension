@@ -2,8 +2,8 @@
 /*
 	plex-gui.php
 
-	WebGUI wrapper for the NAS4Free "Plex Media Server*" add-on created by J.M Rivera.
-	(http://forums.nas4free.org/viewtopic.php?f=71&t=11049)
+	WebGUI wrapper for the NAS4Free/XigmaNAS "Plex Media Server*" add-on created by JoseMR.
+	(https://www.xigmanas.com/forums/viewtopic.php?f=71&t=11184)
 	*Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
 
 	Copyright (c) 2016 Andreas Schmidhuber
@@ -64,7 +64,7 @@ $logfile = "{$rootfolder}/log/plex_ext.log";
 $logevent = "{$rootfolder}/log/plex_last_event.log";
 
 // Set the installed Plex package name.
-$return_val = mwexec("/usr/bin/grep 'PLEX_PASS=' {$confdir}/conf/plex_config", true);
+$return_val = mwexec("/usr/bin/grep 'PLEX_CHANNEL=\"plexpass\"' {$confdir}/conf/plex_config", true);
 if ($return_val == 0) {
 	$prdname = "plexmediaserver-plexpass";
 }
