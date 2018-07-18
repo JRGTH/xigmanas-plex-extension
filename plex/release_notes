@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.2.082....Remove stale gui files on config reset.
 4.2.081....General code consistency and checking improvements.
 4.2.080....Added support for XigmaNAS.
 4.2.079....Reuse pkg symlink environment if exist.

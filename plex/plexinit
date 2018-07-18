@@ -96,12 +96,12 @@ runtime_config()
 	else
 		# Set the proper channel variables based on the installed plex package and write default configuration.
 		# We have to use this method since plexmediaserver --version or equivalent command is broken on FreeBSD.
-		if [ -f "${USRLOCALPATH}/plexmediaserver/${CMDFILE}" ]; then
+		if [ -f "${USRLOCALPATH}/${PRDNAME}/${CMDFILE}" ]; then
 			STANDARD=0
 		else
 			STANDARD=1
 		fi
-		if [ -f "${USRLOCALPATH}/plexmediaserver-plexpass/${CMDFILE}" ]; then
+		if [ -f "${USRLOCALPATH}/${PRDNAME}-plexpass/${CMDFILE}" ]; then
 			PLEXPASS=0
 		else
 			PLEXPASS=1
@@ -145,10 +145,14 @@ default_config()
 
 config_reset()
 {
-	if [ -d ${CWDIR}/conf ]; then
-		echo "Removing stale extension config files..."
+	if [ -f "${CWDIR}${PLEXCONF}" ]; then
+		echo "Removing stale extension config and gui files..."
 		rm -Rf ${CWDIR}/conf
-		echo "Done, please re-run 'plexinit' to restore default config."
+		rm -f ${WWWPATH}/plex-gui.php
+		rm -Rf ${WWWPATH}/ext/plex-gui
+		rm -f ${USRLOCALPATH}/locale-plex
+		rm -Rf ${PLEXCONFLINK}
+		echo "Please run 'plexinit' to restore default configuration."
 		exit 0
 	fi
 }
