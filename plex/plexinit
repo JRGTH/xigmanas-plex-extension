@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh
 # plexinit
 # Plex Media Server Extension for NAS4Free/XigmaNAS 10.3 and later version.
 # (https://www.xigmanas.com/forums/viewtopic.php?f=71&t=11184)
@@ -74,7 +74,7 @@ runtime_config()
 	if [ -f "${CWDIR}/version" ]; then
 		APPVERSION=$(cat ${CWDIR}/version)
 	else
-		ext_initial_download
+		APPVERSION="version file not found!"
 	fi
 
 	# Create required directories if missing.
@@ -152,6 +152,7 @@ config_reset()
 		rm -Rf ${WWWPATH}/ext/plex-gui
 		rm -f ${USRLOCALPATH}/locale-plex
 		rm -Rf ${PLEXCONFLINK}
+		rm -f ${CWDIR}/version
 		echo "Please run 'plexinit' to restore default configuration."
 		exit 0
 	fi
