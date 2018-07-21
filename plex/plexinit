@@ -30,7 +30,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Set environment.
-PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:${PATH}
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 
 # Set global variables.
 SCRIPTNAME=$(basename $0)
@@ -443,7 +443,9 @@ gui_start()
 		GUI_STATUS=$(sysrc -f ${CWDIR}${PLEXCONF} -qn GUI_ENABLE)
 		if [ "${GUI_STATUS}" = "YES" ]; then
 			# Store the installation path and link conf.
-			#sysrc -f ${CWDIR}${PLEXCONF} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
+			if ! sysrc -f ${CWDIR}${PLEXCONF} -n INSTALL_DIR | grep -q "${CWDIR}"; then
+				sysrc -f ${CWDIR}${PLEXCONF} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
+			fi
 			mkdir -p ${PLEXCONFLINK}
 			ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/conf
 			# Copy the gui files.
