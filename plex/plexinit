@@ -90,39 +90,46 @@ runtime_config()
 		PLEXCHANNEL=$(sysrc -f ${CWDIR}${PLEXCONF} -n PLEX_CHANNEL)
 		if [ "${PLEXCHANNEL}" = "plexpass" ]; then
 			plexpass_channel
-		else
+		elif [ "${PLEXCHANNEL}" = "standard" ]; then
 			standard_channel
+		elif [ -z "${PLEXCHANNEL}" ]; then
+			plex_detect
 		fi
 	else
-		# Set the proper channel variables based on the installed plex package and write default configuration.
-		# We have to use this method since plexmediaserver --version or equivalent command is broken on FreeBSD.
-		if [ -f "${USRLOCALPATH}/${PRDNAME}/${CMDFILE}" ]; then
-			STANDARD=0
-		else
-			STANDARD=1
-		fi
-		if [ -f "${USRLOCALPATH}/${PRDNAME}-plexpass/${CMDFILE}" ]; then
-			PLEXPASS=0
-		else
-			PLEXPASS=1
-		fi
+		plex_detect
+	fi
+}
 
-		# Stop script execution if multiple plex versions detected.
-		if [ "${STANDARD}" -eq 0 ] && [ "${PLEXPASS}" -eq 0 ]; then
-			MSG="Error: Multiple ${FULLPRDNAME} versions found."
-			echo ${MSG}
-			logger -t ${SCRIPTNAME} ${MSG}
-			echo "Please install only one ${FULLPRDNAME} version to use this extension."
-			exit 1
-		elif [ "${STANDARD}" -eq 0 ]; then
-			PLEXCH="standard"
-			default_config
-			standard_channel
-		elif [ "${PLEXPASS}" -eq 0 ]; then
-			PLEXCH="plexpass"
-			default_config
-			plexpass_channel
-		fi
+plex_detect()
+{
+	# Set the proper channel variables based on the installed plex package and write default configuration.
+	# We have to use this method since plexmediaserver --version or equivalent command is broken on FreeBSD.
+	if [ -f "${USRLOCALPATH}/${PRDNAME}/${CMDFILE}" ]; then
+		STANDARD=0
+	else
+		STANDARD=1
+	fi
+	if [ -f "${USRLOCALPATH}/${PRDNAME}-plexpass/${CMDFILE}" ]; then
+		PLEXPASS=0
+	else
+		PLEXPASS=1
+	fi
+
+	# Stop script execution if multiple plex versions detected.
+	if [ "${STANDARD}" -eq 0 ] && [ "${PLEXPASS}" -eq 0 ]; then
+		MSG="Error: Multiple ${FULLPRDNAME} versions found."
+		echo ${MSG}
+		logger -t ${SCRIPTNAME} ${MSG}
+		echo "Multiple ${FULLPRDNAME} versions detected, exiting."
+		exit 1
+	elif [ "${STANDARD}" -eq 0 ]; then
+		PLEXCH="standard"
+		default_config
+		standard_channel
+	elif [ "${PLEXPASS}" -eq 0 ]; then
+		PLEXCH="plexpass"
+		default_config
+		plexpass_channel
 	fi
 }
 
@@ -140,6 +147,7 @@ plexpass_channel()
 
 default_config()
 {
+	# Generate default configuration.
 	sysrc -f ${CWDIR}${PLEXCONF} PLEX_CHANNEL=${PLEXCH} PLEX_ENABLE=YES GUI_ENABLE=YES INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 }
 
@@ -422,12 +430,9 @@ EOF
 		# Execute temporary php script.
 		if [ "${OBI_INSTALL}" != "ON" ]; then
 			php-cgi -f ${CWDIR}/postinit && rm ${CWDIR}/postinit
-			# To set enable for the gui because at the installation Plex is started by default.
-			default_config
-		else 
-			# To set enable for the gui because at the installation Plex is started by default.
-			default_config
 		fi
+		# To set enable for the gui because at the installation Plex is started by default.
+		sysrc -f ${CWDIR}${PLEXCONF} PLEX_ENABLE=YES GUI_ENABLE=YES INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 	fi
 }
 
