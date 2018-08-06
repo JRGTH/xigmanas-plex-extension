@@ -78,7 +78,7 @@ else {
 	$textdomain = "/usr/local/share/locale";
 	$textdomain_plex = "/usr/local/share/locale-plex";
 	if (!is_link($textdomain_plex)) { mwexec("ln -s {$rootfolder}/locale-plex {$textdomain_plex}", true); }
-	bindtextdomain("nas4free", $textdomain_plex);
+	bindtextdomain("xigmanas", $textdomain_plex);
 }
 if (is_file("{$rootfolder}/postinit")) unlink("{$rootfolder}/postinit");
 
@@ -161,7 +161,7 @@ if ($_POST) {
 	}
 
 	if (isset($_POST['remove']) && $_POST['remove']) {
-		bindtextdomain("nas4free", $textdomain);
+		bindtextdomain("xigmanas", $textdomain);
 		if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
 		if (is_dir($confdir)) mwexec("rm -Rf {$confdir}", true);
 		mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
@@ -172,7 +172,7 @@ if ($_POST) {
 
 	// Remove only extension related files during cleanup.
 	if (isset($_POST['uninstall']) && $_POST['uninstall']) {
-		bindtextdomain("nas4free", $textdomain);
+		bindtextdomain("xigmanas", $textdomain);
 		if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
 		if (is_dir($confdir)) mwexec("rm -Rf {$confdir}", true);
 		mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
@@ -278,9 +278,9 @@ if (is_ajax()) {
 	render_ajax($getinfo);
 }
 
-bindtextdomain("nas4free", $textdomain);
+bindtextdomain("xigmanas", $textdomain);
 include("fbegin.inc");
-bindtextdomain("nas4free", $textdomain_plex);
+bindtextdomain("xigmanas", $textdomain_plex);
 ?>
 <script type="text/javascript">//<![CDATA[
 $(document).ready(function(){
