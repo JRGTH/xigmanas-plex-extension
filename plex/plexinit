@@ -166,6 +166,33 @@ config_reset()
 	fi
 }
 
+plexdata_backup()
+{
+	if [ -f "${CWDIR}${PLEXCONF}" ]; then
+		BACKUPDIR=$(sysrc -f ${CWDIR}${PLEXCONF} -n BACKUP_DIR)
+		if [ -d "${BACKUPDIR}" ]; then
+			echo "Plexdata backup in progress..."
+			cd ${CWDIR}
+			mkdir -p ${BACKUPDIR}
+			tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar ${BACKUPDIR}
+			if [ 0 -eq $? ]; then
+				MSG="Plexdata backup created successfully."
+				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+				logger -t ${SCRIPTNAME} ${MSG}
+				exit 0
+			else
+				MSG="A problem has occurred during the backup process."
+				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+				logger -t ${SCRIPTNAME} ${MSG}
+				exit 1
+			fi
+		else
+			echo "Backup directory not found."
+			exit 1
+		fi
+	fi
+}
+
 update_freebsdconf()
 {
 	# Update FreeBSD.conf to fetch latest packages.
@@ -694,19 +721,20 @@ plex_init()
 runtime_config
 
 # Plexinit common control switches.
-while getopts ":abotgsprxvuh" option; do
+while getopts ":abotgsprxbvuh" option; do
 	case ${option} in
 		[h]) echo "Usage: ${SCRIPTNAME} -[option]";
 		echo "Options:"
-		echo "		-s  Start ${FULLPRDNAME}."
-		echo "		-p  Stop ${FULLPRDNAME}."
-		echo "		-r  Restart ${FULLPRDNAME}."
-		echo "		-u  Upgrade Plex/Extension packages."
-		echo "		-g  Enables the addon GUI."
-		echo "		-t  Disable the addon GUI."
-		echo "		-x  Reset Plex Extension Config."
-		echo "		-v  Display product version."
-		echo "		-h  Display this help message."; exit 0 ;;
+		echo "        -s  Start ${FULLPRDNAME}."
+		echo "        -p  Stop ${FULLPRDNAME}."
+		echo "        -r  Restart ${FULLPRDNAME}."
+		echo "        -u  Upgrade Plex/Extension packages."
+		echo "        -g  Enables the addon GUI."
+		echo "        -t  Disable the addon GUI."
+		echo "        -x  Reset Plex Extension Config."
+		echo "        -b  Backup Plexdata Directory."
+		echo "        -v  Display product version."
+		echo "        -h  Display this help message."; exit 0 ;;
 		[a]) OPT_INSTALL="1";; # Alternate installer option.
 		[o]) OBI_INSTALL="ON";; # To prevent nested PHP-CGI call for installation with OBI.
 		[g]) gui_enable; exit 0 ;; # For enable the addon gui.
@@ -715,6 +743,7 @@ while getopts ":abotgsprxvuh" option; do
 		[p]) service ${CMDNAME}${CMD_ARG} onestop 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestop; exit 0 ;;
 		[r]) service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart; exit 0 ;;
 		[x]) config_reset;;
+		[b]) plexdata_backup;;
 		[v]) echo "${APPNAME} ${APPVERSION}"; pkg info -I ${PRDNAME}${PKG_ARG}; exit 0 ;;
 		[u]) pkg_upgrade; exit 0 ;;
 		[?]) echo "Invalid option, -h for usage."; exit 1 ;;
