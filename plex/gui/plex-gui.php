@@ -149,14 +149,17 @@ if ($_POST) {
 	endif;
 
 	if (isset($_POST['backup']) && $_POST['backup']) {
-		$return_val = mwexec("mkdir -p {$backup_path} && cd {$rootfolder} && tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar {$backup_path}", true);
+		//$return_val = mwexec("mkdir -p {$backup_path} && cd {$rootfolder} && tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar {$backup_path}", true);
+		// The backup process is now handled by the plexinit script, also prevent gui hangs during backup process.
+		$return_val = mwexec("nohup {$rootfolder}/plexinit -b >/dev/null 2>&1 &", true);
 		if ($return_val == 0) {
-			$savemsg .= gtext("Plexdata backup created successfully in {$backup_path}.");
-			exec("echo '{$date}: Plexdata backup successfully created' >> {$logfile}");
+			//$savemsg .= gtext("Plexdata backup created successfully in {$backup_path}.");
+			$savemsg .= gtext("Plexdata backup process started in background successfully.");
+			//exec("echo '{$date}: Plexdata backup successfully created' >> {$logfile}");
 		}
 		else {
 			$input_errors[] = gtext("Plexdata backup failed.");
-			exec("echo '{$date}: Plexdata backup failed' >> {$logfile}");
+			//exec("echo '{$date}: Plexdata backup failed' >> {$logfile}");
 		}
 	}
 

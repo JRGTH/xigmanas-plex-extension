@@ -68,6 +68,14 @@ BRANCH="master"
 GITURL="https://github.com/JRGTH/nas4free-plex-extension/archive/${BRANCH}.zip"
 VERFILE="https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/${BRANCH}/plex/version"
 
+error_notify()
+{
+	# Log/notify message on error and exit.
+	MSG="$*"
+	logger -t "${SCRIPTNAME}" "${MSG}"
+	echo -e "$*" >&2; exit 1
+}
+
 runtime_config()
 {
 	# Get current plex extension version.
@@ -117,11 +125,7 @@ plex_detect()
 
 	# Stop script execution if multiple plex versions detected.
 	if [ "${STANDARD}" -eq 0 ] && [ "${PLEXPASS}" -eq 0 ]; then
-		MSG="Error: Multiple ${FULLPRDNAME} versions found."
-		echo ${MSG}
-		logger -t ${SCRIPTNAME} ${MSG}
-		echo "Multiple ${FULLPRDNAME} versions detected, exiting."
-		exit 1
+		error_notify "Error: Multiple ${FULLPRDNAME} versions found."
 	elif [ "${STANDARD}" -eq 0 ]; then
 		PLEXCH="standard"
 		default_config
@@ -170,10 +174,15 @@ plexdata_backup()
 {
 	if [ -f "${CWDIR}${PLEXCONF}" ]; then
 		BACKUPDIR=$(sysrc -f ${CWDIR}${PLEXCONF} -n BACKUP_DIR)
+		if [ -z "${BACKUPDIR}" ]; then
+			echo "Backup directory is not configured."
+			exit 1
+		elif [ ! -d "${BACKUPDIR}" ]; then
+			mkdir -p ${BACKUPDIR}
+		fi
 		if [ -d "${BACKUPDIR}" ]; then
 			echo "Plexdata backup in progress..."
 			cd ${CWDIR}
-			mkdir -p ${BACKUPDIR}
 			tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar ${BACKUPDIR}
 			if [ 0 -eq $? ]; then
 				MSG="Plexdata backup created successfully."
@@ -183,12 +192,10 @@ plexdata_backup()
 			else
 				MSG="A problem has occurred during the backup process."
 				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
-				logger -t ${SCRIPTNAME} ${MSG}
-				exit 1
+				error_notify ${MSG}
 			fi
 		else
-			echo "Backup directory not found."
-			exit 1
+			error_notify "Backup directory not found."
 		fi
 	fi
 }
@@ -198,13 +205,8 @@ update_freebsdconf()
 	# Update FreeBSD.conf to fetch latest packages.
 	if [ -f "${PKGCONF}" ]; then 
 		if grep -q "quarterly" ${PKGCONF}; then
-			sed -i '' -E "s/quarterly/latest/g" ${PKGCONF}
-			if [ $? -eq 1 ]; then
-				MSG="Error: A problem has occurred while updating FreeBSD.conf file."
-				echo ${MSG}
-				logger -t ${SCRIPTNAME} ${MSG}
-				exit 1
-			fi
+			sed -i '' -E "s/quarterly/latest/g" ${PKGCONF} || \
+			error_notify "Error: A problem has occurred while updating FreeBSD.conf file."
 		fi
 	fi
 }
@@ -220,23 +222,15 @@ plex_initial_download()
 		pkg install -y ${PRDNAME}${PKG_ARG}
 		# Re-check if Plex diretory/application exist.
 		if [ ! -f "${PLEXPATH}${PKG_ARG}/${CMDFILE}" ]; then
-			MSG="Error: A problem has occurred while fetching/locating plexmediaserver."
-			echo ${MSG}
-			logger -t ${SCRIPTNAME} ${MSG}
-			exit 1
+			error_notify "Error: A problem has occurred while fetching/locating plexmediaserver."
 		fi
 	fi
 
 	# Backup latest plex rcd after install if embedded.
 	if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
 		if [ -f "${PLEXRCD}${CMD_ARG}" ]; then
-			cp ${PLEXRCD}${CMD_ARG} ${CWDIR}/system/rc.d/
-			if [ $? -eq 1 ]; then
-				MSG="Error: A problem has occurred while copying rcd file."
-				echo ${MSG}
-				logger -t ${SCRIPTNAME} ${MSG}
-				exit 1
-			fi
+			cp ${PLEXRCD}${CMD_ARG} ${CWDIR}/system/rc.d/ || \
+			error_notify "Error: A problem has occurred while copying rcd file."
 		fi
 	fi
 }
@@ -266,13 +260,8 @@ pkg_upgrade()
 	# Backup latest plex rcd after upgrade if embedded.
 	if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
 		if [ -f "${PLEXRCD}${CMD_ARG}" ]; then
-			cp ${PLEXRCD}${CMD_ARG} ${CWDIR}/system/rc.d/
-			if [ $? -eq 1 ]; then
-				MSG="Error: A problem has occurred while copying plex rc file."
-				echo ${MSG}
-				logger -t ${SCRIPTNAME} ${MSG}
-				exit 1
-			fi
+			cp ${PLEXRCD}${CMD_ARG} ${CWDIR}/system/rc.d/ || \
+			error_notify "Error: A problem has occurred while copying plex rc file."
 		fi
 	fi
 
@@ -304,26 +293,16 @@ extension_upgrade()
 	else
 		# Perform an online extension upgrade.
 		mkdir -p ${CWDIR}/update
-		fetch -ao ${CWDIR}/update --no-verify-peer --timeout=30 ${VERFILE}
-		if [ $? -eq 1 ]; then
-			MSG="Error: A problem has occurred while fetching version file."
-			echo ${MSG}
-			logger -t ${SCRIPTNAME} ${MSG}
-			exit 1
-		fi
+		fetch -ao ${CWDIR}/update --no-verify-peer --timeout=30 ${VERFILE} || \
+		error_notify "Error: A problem has occurred while fetching version file."
 		# Compare version files and fetch latest package if available.
 		if [ -f "${CWDIR}/update/version" ]; then
 			UPDATEVER=$(cat ${CWDIR}/update/version | tr -d .)
 			CURRENTVER=$(cat ${CWDIR}/version | tr -d .)
 			if [ "${UPDATEVER}" -gt "${CURRENTVER}" ]; then
 				echo "New ${APPNAME} package found, performing upgrade..."
-				fetch -ao ${CWDIR}/update --no-verify-peer --timeout=30 ${GITURL}
-				if [ $? -eq 1 ]; then
-					MSG="Error: A problem has occurred while fetching extension package."
-					echo ${MSG}
-					logger -t ${SCRIPTNAME} ${MSG}
-					exit 1
-				fi
+				fetch -ao ${CWDIR}/update --no-verify-peer --timeout=30 ${GITURL} || \
+				error_notify "Error: A problem has occurred while fetching extension package."
 				tar -xf ${CWDIR}/update/*${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 				chmod +x ${CWDIR}/update/plex/${SCRIPTNAME}
 				cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
@@ -346,13 +325,8 @@ ext_initial_download()
 	# Always ensure the version file is present, otherwise update the extension files on startup.
 	if [ ! -f "${CWDIR}/version" ]; then
 		mkdir -p ${CWDIR}/update
-		fetch -ao ${CWDIR}/update --no-verify-peer --timeout=30 ${GITURL}
-		if [ $? -eq 1 ]; then
-			MSG="Error: A problem has occurred while fetching extension package."
-			echo ${MSG}
-			logger -t ${SCRIPTNAME} ${MSG}
-			exit 1
-		fi
+		fetch -ao ${CWDIR}/update --no-verify-peer --timeout=30 ${GITURL} || \
+		error_notify "Error: A problem has occurred while fetching extension package."
 		tar -xf ${CWDIR}/update/${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 		chmod +x ${CWDIR}/update/plex/${SCRIPTNAME}
 		cp -Rf ${CWDIR}/update/plex/* ${CWDIR}/
@@ -365,13 +339,8 @@ update_guifiles()
 	# Check if gui enabled then copy/overwrite new files to www.
 	GUI_STATUS=$(sysrc -f ${CWDIR}${PLEXCONF} -qn GUI_ENABLE)
 	if [ "${GUI_STATUS}" = "YES" ]; then
-		cp -R ${CWDIR}/gui/* ${WWWPATH}/
-		if [ $? -eq 1 ]; then
-			MSG="Error: A problem has occurred while copying extension gui files."
-			echo ${MSG}
-			logger -t ${SCRIPTNAME} ${MSG}
-			exit 1
-		fi
+		cp -R ${CWDIR}/gui/* ${WWWPATH}/ || \
+		error_notify "Error: A problem has occurred while copying extension gui files."
 	fi
 }
 
@@ -399,13 +368,7 @@ postinit_cmd()
 {
 	# Check and generate temporary php script for postinit command.
 	if ! grep -qw ${CWDIR}/${SCRIPTNAME} ${CONFIG}; then
-		touch ${CWDIR}/postinit
-		if [ $? -eq 1 ]; then
-			MSG="Error: A problem has occurred while creating the postinit file."
-			echo ${MSG}
-			logger -t ${SCRIPTNAME} ${MSG}
-			exit 1
-		fi
+		touch ${CWDIR}/postinit || error_notify "Error: A problem has occurred while creating the postinit file."
 		chmod +x ${CWDIR}/postinit
 		if [ ! "${PRDVERSION}" -ge "110" ]; then
 			# Generate php script for NAS4Free 10.3 versions.
@@ -481,38 +444,22 @@ gui_start()
 			mkdir -p ${PLEXCONFLINK}
 			ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/conf
 			# Copy the gui files.
-			cp -R ${CWDIR}/gui/* ${WWWPATH}/
-			if [ $? -eq 1 ]; then
-				MSG="Error: A problem has occurred while copying extension gui files."
-				echo ${MSG}
-				logger -t ${SCRIPTNAME} ${MSG}
-				exit 1
-			fi
+			cp -R ${CWDIR}/gui/* ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
 		fi
 	fi
 }
 
 gui_enable()
 {
-	#  Relink conf and copy the gui files.
+	# Relink conf and copy the gui files.
 	if [ -d "${CWDIR}/gui" ]; then
 		mkdir -p ${PLEXCONFLINK}
 		ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/conf
 		sysrc -f ${CWDIR}${PLEXCONF} GUI_ENABLE=YES >/dev/null 2>&1
-		cp -R ${CWDIR}/gui/* ${WWWPATH}/
-		if [ $? -eq 1 ]; then
-			MSG="Error: A problem has occurred while copying extension gui files."
-			echo ${MSG}
-			logger -t ${SCRIPTNAME} ${MSG}
-			exit 1
-		else
-			exit 0
-		fi
+		cp -R ${CWDIR}/gui/* ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
+		exit 0
 	else
-		MSG="Error: Extension gui files not found."
-		echo ${MSG}
-		logger -t ${SCRIPTNAME} ${MSG}
-		exit 1
+		error_notify "Error: Extension gui files not found."
 	fi
 }
 
@@ -524,20 +471,10 @@ gui_disable()
 		rm -Rf ${WWWPATH}/ext/plex-gui
 		rm -f ${USRLOCALPATH}/locale-plex
 		rm -Rf ${PLEXCONFLINK}
-		sysrc -f ${CWDIR}${PLEXCONF} GUI_ENABLE=NO >/dev/null 2>&1
-		if [ $? -eq 1 ]; then
-			MSG="Error: A problem while removing extension gui files."
-			echo ${MSG}
-			logger -t ${SCRIPTNAME} ${MSG}
-			exit 1
-		else
-			exit 0
-		fi
+		sysrc -f ${CWDIR}${PLEXCONF} GUI_ENABLE=NO >/dev/null 2>&1 || error_notify "Error: A problem while removing extension gui files."
+		exit 0
 	else
-		MSG="Error: Extension gui files not found."
-		echo ${MSG}
-		logger -t ${SCRIPTNAME} ${MSG}
-		exit 1
+		error_notify "Error: Extension gui files not found."
 	fi
 
 	# Remove empty ext folder to prevent empty "Extensions" tab.
@@ -635,13 +572,7 @@ plex_rcd_link()
 	# Restore current plex rcd if embedded.
 	if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
 		if [ -f ${CWDIR}/system/rc.d/${CMDNAME}${CMD_ARG} ]; then
-			cp ${CWDIR}/system/rc.d/${CMDNAME}${CMD_ARG} ${RCDPATH}/
-			if [ $? -eq 1 ]; then
-				MSG="Error: A problem has occurred while copying rcd file."
-				echo ${MSG}
-				logger -t ${SCRIPTNAME} ${MSG}
-				exit 1
-			fi
+			cp ${CWDIR}/system/rc.d/${CMDNAME}${CMD_ARG} ${RCDPATH}/ || error_notify "Error: A problem has occurred while copying rcd file."
 		fi
 	fi
 }
@@ -680,7 +611,7 @@ plex_rcparam_start()
 		service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart
 	fi
 
-	# Logg on startup success, else logging with faults.
+	# Log on startup success, else logging with faults.
 	if [ $? -eq 0 ]; then
 		MSG="script has been started successfully!"
 		logger -t ${SCRIPTNAME} ${MSG}
@@ -721,7 +652,7 @@ plex_init()
 runtime_config
 
 # Plexinit common control switches.
-while getopts ":abotgsprxbvuh" option; do
+while getopts ":aogtsprxbvuh" option; do
 	case ${option} in
 		[h]) echo "Usage: ${SCRIPTNAME} -[option]";
 		echo "Options:"
