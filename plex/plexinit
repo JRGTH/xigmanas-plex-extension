@@ -320,7 +320,7 @@ extract_tarball()
 		EXCLUDE="--exclude=start.sh"
 		echo "${FULLPRDNAME} tarball file found, trying to upgrade from file..."
 		echo "Extracting ${PLEXTARBALL}..."
-		tar ${EXCLUDE} -xf ${CWDIR}/PlexMediaServer-*-freebsd-amd64.tar.bz2 --strip-components 1 -C ${USRLOCALPATH}/plexmediaserver/
+		tar ${EXCLUDE} -xf ${CWDIR}/PlexMediaServer-*-freebsd-amd64.tar.bz2 --strip-components 1 -C ${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/
 		if [ 0 -eq $? ]; then
 			MSG="${FULLPRDNAME} tarball extracted successfully."
 			echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
