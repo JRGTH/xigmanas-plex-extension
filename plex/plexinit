@@ -65,6 +65,7 @@ PRDNAME="plexmediaserver"
 CMDNAME=${PRDNAME}
 CMDFILE="Plex_Media_Server"
 BRANCH="master"
+PINGHOST="freebsd.org"
 GITURL="https://github.com/JRGTH/nas4free-plex-extension/archive/${BRANCH}.zip"
 VERFILE="https://raw.githubusercontent.com/JRGTH/nas4free-plex-extension/${BRANCH}/plex/version"
 
@@ -159,12 +160,12 @@ config_reset()
 {
 	if [ -f "${CWDIR}${PLEXCONF}" ]; then
 		echo "Removing stale extension config and gui files..."
-		rm -Rf ${CWDIR}/conf
-		rm -f ${WWWPATH}/plex-gui.php
-		rm -Rf ${WWWPATH}/ext/plex-gui
-		rm -f ${USRLOCALPATH}/locale-plex
-		rm -Rf ${PLEXCONFLINK}
-		rm -f ${CWDIR}/version
+		FILELIST="${CWDIR}/conf ${WWWPATH}/plex-gui.php ${WWWPATH}/ext/plex-gui ${USRLOCALPATH}/locale-plex ${PLEXCONFLINK} ${CWDIR}/version ${CWDIR}/plexversion"
+		for file in ${FILELIST}; do
+			if [ -f "${file}" ] || [ -d "${file}" ]; then
+				rm -rf ${file}
+			fi
+		done
 		echo "Please run 'plexinit' to restore default configuration."
 		exit 0
 	fi
@@ -219,6 +220,10 @@ plex_initial_download()
 	# Check if Plex already exist.
 	if [ ! -f "${PLEXPATH}${PKG_ARG}/${CMDFILE}" ]; then
 		# Fetch and install latest plex package.
+		if [ -f "${CWDIR}/plexversion" ]; then
+			# Remove previous version file from tarball upgrades.
+			rm -f ${CWDIR}/plexversion
+		fi
 		pkg install -y ${PRDNAME}${PKG_ARG}
 		# Re-check if Plex diretory/application exist.
 		if [ ! -f "${PLEXPATH}${PKG_ARG}/${CMDFILE}" ]; then
@@ -240,21 +245,50 @@ pkg_upgrade()
 	# Update FreeBSD.conf file.
 	update_freebsdconf
 
-	# Get current plex version.
-	PLEXVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d .)
+	# Check if freebsd.org is reachable and prevent for long connection waiting.
+	if ping -c1 ${PINGHOST} > /dev/null 2>&1; then
+		pkg update
+	else
+		echo "Error: ${PINGHOST} is unreachable, Please check your Internet connection."
+		exit 1
+	fi
 
+	# Get current plex version.
+	if [ -z "${PKG_ARG}" ]; then
+		PLEXVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d .)
+	else
+		PLEXVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f3 | tr -d .)
+	fi
 	# Check for latest plex packages for upgrade.
-	pkg upgrade -y ${PRDNAME}${PKG_ARG}
+	if ! pkg upgrade -n ${PRDNAME}${PKG_ARG} > /dev/null 2>&1; then
+		if [ -f "${CWDIR}/plexversion" ]; then
+			echo "Removing stale files from previous tarball upgrade..."
+			# Remove previous version file from tarball upgrades.
+			rm -rf ${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/*
+			rm -f ${CWDIR}/plexversion
+			pkg upgrade -y -f ${PRDNAME}${PKG_ARG}
+		else
+			pkg upgrade -y ${PRDNAME}${PKG_ARG}
+		fi
+	else
+		echo "${FULLPRDNAME} package is up to date."
+	fi
 
 	# Get new plex version.
-	PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d .)
+	if [ -z "${PKG_ARG}" ]; then
+		PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d .)
+	else
+		PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f3 | tr -d .)
+	fi
 
 	# Logging and plex restart after upgrade.
 	if [ "${PLEXNEWVERSION}" -gt "${PLEXVERSION}" ]; then
 		PLEXNEWVER=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2)
 		echo "${DATE}: ${FULLPRDNAME} upgraded to ${PLEXNEWVER}" >> ${PLEXLOGFILE}
 		echo "${FULLPRDNAME} package upgrade completed!"
-		service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
+		if ps -acx | grep -q "Plex \Media \Server"; then
+			service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
+		fi
 	fi
 
 	# Backup latest plex rcd after upgrade if embedded.
@@ -270,6 +304,40 @@ pkg_upgrade()
 		extension_upgrade
 	else
 		ext_initial_download
+	fi
+}
+
+extract_tarball()
+{
+	# Alternative Plex Media Server manual upgrades from official tarball files.
+	# This will overwrite/override the current Plex installation files and the
+	# pkg utility will still reference for the older package version from pkg info
+	# as expected, so we will create a plexversion file for the extension reference.
+	PLEXTARBALL=$(ls ${CWDIR} | egrep -o 'PlexMediaServer-([1-9]{1,}\.)+[0-9]{1,}.*-freebsd-amd64.tar.bz2')
+	if [ -n "${PLEXTARBALL}" ]; then
+		SETVERSION=$(echo "${PLEXTARBALL}" | cut -d'-' -f2)
+		echo "${PRDNAME}${PKG_ARG}-${SETVERSION}    ${FULLPRDNAME} component" > ${CWDIR}/plexversion
+		EXCLUDE="--exclude=start.sh"
+		echo "${FULLPRDNAME} tarball file found, trying to upgrade from file..."
+		echo "Extracting ${PLEXTARBALL}..."
+		tar ${EXCLUDE} -xf ${CWDIR}/PlexMediaServer-*-freebsd-amd64.tar.bz2 --strip-components 1 -C ${USRLOCALPATH}/plexmediaserver/
+		if [ 0 -eq $? ]; then
+			MSG="${FULLPRDNAME} tarball extracted successfully."
+			echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+			logger -t ${SCRIPTNAME} ${MSG}
+			rm  ${CWDIR}/PlexMediaServer-*-freebsd-amd64.tar.bz2
+			if ps -acx | grep -q "Plex \Media \Server"; then
+				service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
+			fi
+			exit 0
+		else
+			MSG="Error: A problem has occurred during tarball file extraction."
+			echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+			error_notify ${MSG}
+		fi
+	else
+		echo "${FULLPRDNAME} tarball file not found!"
+		exit 1
 	fi
 }
 
@@ -621,6 +689,19 @@ plex_rcparam_start()
 	fi
 }
 
+get_versions()
+{
+	echo "${APPNAME} ${APPVERSION}"
+	if [ -f "${CWDIR}/plexversion" ]; then
+		VERSION=$(cat ${CWDIR}/plexversion)
+		echo "${VERSION}"
+	else
+		pkg info -I ${PRDNAME} 2> /dev/null || pkg info -I ${PRDNAME}-plexpass 2> /dev/null || \
+		echo "Can not determine plex version."
+	fi
+	exit 0
+}
+
 plex_init()
 {
 	echo "Initializing..."
@@ -652,7 +733,7 @@ plex_init()
 runtime_config
 
 # Plexinit common control switches.
-while getopts ":aogtsprxbvuh" option; do
+while getopts ":aogtsprxbevuh" option; do
 	case ${option} in
 		[h]) echo "Usage: ${SCRIPTNAME} -[option]";
 		echo "Options:"
@@ -664,6 +745,7 @@ while getopts ":aogtsprxbvuh" option; do
 		echo "        -t  Disable the addon GUI."
 		echo "        -x  Reset Plex Extension Config."
 		echo "        -b  Backup Plexdata Directory."
+		echo "        -e  Upgrade Plex package from tarball."
 		echo "        -v  Display product version."
 		echo "        -h  Display this help message."; exit 0 ;;
 		[a]) OPT_INSTALL="1";; # Alternate installer option.
@@ -675,7 +757,8 @@ while getopts ":aogtsprxbvuh" option; do
 		[r]) service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart; exit 0 ;;
 		[x]) config_reset;;
 		[b]) plexdata_backup;;
-		[v]) echo "${APPNAME} ${APPVERSION}"; pkg info -I ${PRDNAME}${PKG_ARG}; exit 0 ;;
+		[e]) extract_tarball;;
+		[v]) get_versions;;
 		[u]) pkg_upgrade; exit 0 ;;
 		[?]) echo "Invalid option, -h for usage."; exit 1 ;;
 	esac

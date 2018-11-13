@@ -59,6 +59,7 @@ $cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' {$confdir}/conf/plex_config | cut -d
 $rootfolder = $cwdir;
 $configfile = "{$rootfolder}/conf/plex_config";
 $versionfile = "{$rootfolder}/version";
+$tarballversion = "{$rootfolder}/plexversion";
 $date = strftime('%c');
 $logfile = "{$rootfolder}/log/plex_ext.log";
 $logevent = "{$rootfolder}/log/plex_last_event.log";
@@ -181,7 +182,7 @@ if ($_POST) {
 		mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
 		mwexec("{$rootfolder}/plexinit -t", true);
 		mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
-		mwexec("pkg delete -y {$prdname}", true);
+		mwexec("pkg delete -y -f -q {$prdname}", true);
 		if (isset($_POST['plexdata'])) { $uninstall_cmd = "rm -Rf '{$rootfolder}/backup' '{$rootfolder}/conf' '{$rootfolder}/gui' '{$rootfolder}/locale-plex' '{$rootfolder}/log' '{$rootfolder}/plexdata' '{$rootfolder}/system' '{$rootfolder}/plexinit' '{$rootfolder}/README' '{$rootfolder}/release_notes' '{$rootfolder}/version'"; }
 		else { $uninstall_cmd = "rm -Rf '{$rootfolder}/backup' '{$rootfolder}/conf' '{$rootfolder}/gui' '{$rootfolder}/locale-plex' '{$rootfolder}/log' '{$rootfolder}/system' '{$rootfolder}/plexinit' '{$rootfolder}/README' '{$rootfolder}/release_notes' '{$rootfolder}/version'"; }
 		mwexec($uninstall_cmd, true);
@@ -249,9 +250,15 @@ $plexenable = exec("/bin/cat {$configfile} | /usr/bin/grep 'PLEX_ENABLE=' | cut 
 $backup_path = exec("/bin/cat {$configfile} | /usr/bin/grep 'BACKUP_DIR=' | cut -d'\"' -f2");
 
 function get_version_plex() {
-	global $prdname;
-	exec("/usr/local/sbin/pkg info -I {$prdname}", $result);
-	return ($result[0]);
+	global $tarballversion, $prdname;
+	if (is_file("{$tarballversion}")) {
+		exec("/bin/cat {$tarballversion}", $result);
+		return ($result[0]);
+	}
+	else {
+		exec("/usr/local/sbin/pkg info -I {$prdname}", $result);
+		return ($result[0]);
+	}
 }
 
 function get_version_ext() {

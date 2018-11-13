@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.2.089....Ability to upgrade from tarball file and general fixes.
 4.2.088....Improved code and error handling, cleanup.
 4.2.087....Added plexdata backup command line option.
 4.2.086....Translation files adapted for XigmaNAS.
