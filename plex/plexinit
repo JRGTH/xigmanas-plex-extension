@@ -255,9 +255,9 @@ pkg_upgrade()
 
 	# Get current plex version.
 	if [ -z "${PKG_ARG}" ]; then
-		PLEXVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d .)
+		PLEXVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d . | tr -d '_')
 	else
-		PLEXVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f3 | tr -d .)
+		PLEXVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f3 | tr -d . | tr -d '_')
 	fi
 	# Check for latest plex packages for upgrade.
 	if ! pkg upgrade -n ${PRDNAME}${PKG_ARG} > /dev/null 2>&1; then
@@ -276,9 +276,9 @@ pkg_upgrade()
 
 	# Get new plex version.
 	if [ -z "${PKG_ARG}" ]; then
-		PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d .)
+		PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d . | tr -d '_')
 	else
-		PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f3 | tr -d .)
+		PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f3 | tr -d . | tr -d '_')
 	fi
 
 	# Logging and plex restart after upgrade.
