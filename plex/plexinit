@@ -41,6 +41,7 @@ PRDVERSION=$(uname -r | cut -d '-' -f1 | tr -d '.')
 PRDPLATFORM=$(cat /etc/platform)
 DATE=$(date +"%a %b %d %T %Y")
 APPNAME="Plex Extension"
+PRDNAME="plexmediaserver"
 PKGCONF="/etc/pkg/FreeBSD.conf"
 WWWPATH="/usr/local/www"
 PKGCACHE="/var/cache/pkg"
@@ -52,16 +53,14 @@ COMPATPATH2="/usr/local/lib32/compat"
 COMPATPATH3="/usr/local/libdata/ldconfig"
 COMPATPATH4="/usr/local/libdata/ldconfig32"
 USRLOCALPATH="/usr/local/share"
-PLEXPATH="${USRLOCALPATH}/plexmediaserver"
-PLEXRCD="/usr/local/etc/rc.d/plexmediaserver"
-PLEXPID="/var/run/plex/plex.pid"
+PLEXPATH="${USRLOCALPATH}/${PRDNAME}"
+PLEXRCD="/usr/local/etc/rc.d/${PRDNAME}"
 SUPPORTPATH="${CWDIR}/plexdata"
 RCDPATH="/usr/local/etc/rc.d"
 CONFIG="/cf/conf/config.xml"
 RCCONF="/etc/rc.conf"
 FULLPRDNAME="Plex Media Server"
 PLEXLOGFILE="${CWDIR}/log/plex_ext.log"
-PRDNAME="plexmediaserver"
 CMDNAME=${PRDNAME}
 CMDFILE="Plex_Media_Server"
 BRANCH="master"
@@ -74,7 +73,7 @@ error_notify()
 	# Log/notify message on error and exit.
 	MSG="$*"
 	logger -t "${SCRIPTNAME}" "${MSG}"
-	echo -e "$*" >&2; exit 1
+	echo -e "${MSG}" >&2; exit 1
 }
 
 runtime_config()
@@ -286,7 +285,7 @@ pkg_upgrade()
 		PLEXNEWVER=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2)
 		echo "${DATE}: ${FULLPRDNAME} upgraded to ${PLEXNEWVER}" >> ${PLEXLOGFILE}
 		echo "${FULLPRDNAME} package upgrade completed!"
-		if ps -acx | grep -q "Plex \Media \Server"; then
+		if ps -acx | grep -q "Plex Media Server"; then
 			service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
 		fi
 	fi
@@ -326,7 +325,7 @@ extract_tarball()
 			echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
 			logger -t ${SCRIPTNAME} ${MSG}
 			rm  ${CWDIR}/PlexMediaServer-*-freebsd-amd64.tar.bz2
-			if ps -acx | grep -q "Plex \Media \Server"; then
+			if ps -acx | grep -q "Plex Media Server"; then
 				service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
 			fi
 			exit 0
@@ -675,7 +674,7 @@ plex_rcparam_start()
 	fi
 
 	# Start Plex Media Server.
-	if ! ps -acx | grep -q "Plex \Media \Server"; then
+	if ! ps -acx | grep -q "Plex Media Server"; then
 		service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart
 	fi
 

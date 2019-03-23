@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.2.093....Minor code fixes and cleanup.
 4.2.092....Improved version numbers comparison.
 4.2.091....Fix for version numbers comparison.
 4.2.090....Fix tarball file extract path.
