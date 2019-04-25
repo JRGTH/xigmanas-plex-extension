@@ -155,7 +155,7 @@ if ($_POST) {
 		$return_val = mwexec("nohup {$rootfolder}/plexinit -b >/dev/null 2>&1 &", true);
 		if ($return_val == 0) {
 			//$savemsg .= gtext("Plexdata backup created successfully in {$backup_path}.");
-			$savemsg .= gtext("Plexdata backup process started in background successfully.");
+			$savemsg .= gtext("Plexdata backup process started in the background successfully.");
 			//exec("echo '{$date}: Plexdata backup successfully created' >> {$logfile}");
 		}
 		else {
@@ -164,10 +164,24 @@ if ($_POST) {
 		}
 	}
 
+	if (isset($_POST['restore']) && $_POST['restore']) {
+		// The restore process is now handled by the plexinit script, also prevent gui hangs during restore process.
+		$backup_file = ($_POST['backup_path']);
+		$return_val = mwexec("nohup {$rootfolder}/plexinit -f {$backup_file} >/dev/null 2>&1 &", true);
+		if ($return_val == 0) {
+			$savemsg .= gtext("Plexdata restore process started in the background successfully.");
+			//exec("echo '{$date}: Plexdata restore successfully created' >> {$logfile}");
+		}
+		else {
+			$input_errors[] = gtext("Plexdata restore failed.");
+			//exec("echo '{$date}: Plexdata restore failed' >> {$logfile}");
+		}
+	}
+
 	if (isset($_POST['remove']) && $_POST['remove']) {
 		bindtextdomain("xigmanas", $textdomain);
 		if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
-		if (is_dir($confdir)) mwexec("rm -Rf {$confdir}", true);
+		if (is_dir($confdir)) mwexec("rm -rf {$confdir}", true);
 		mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
 		mwexec("{$rootfolder}/plexinit -t", true);
 		exec("echo '{$date}: Extension GUI successfully removed' >> {$logfile}");
@@ -178,13 +192,18 @@ if ($_POST) {
 	if (isset($_POST['uninstall']) && $_POST['uninstall']) {
 		bindtextdomain("xigmanas", $textdomain);
 		if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
-		if (is_dir($confdir)) mwexec("rm -Rf {$confdir}", true);
+		if (is_dir($confdir)) mwexec("rm -rf {$confdir}", true);
 		mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
 		mwexec("{$rootfolder}/plexinit -t", true);
 		mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
 		mwexec("pkg delete -y -f -q {$prdname}", true);
-		if (isset($_POST['plexdata'])) { $uninstall_cmd = "rm -Rf '{$rootfolder}/backup' '{$rootfolder}/conf' '{$rootfolder}/gui' '{$rootfolder}/locale-plex' '{$rootfolder}/log' '{$rootfolder}/plexdata' '{$rootfolder}/system' '{$rootfolder}/plexinit' '{$rootfolder}/README' '{$rootfolder}/release_notes' '{$rootfolder}/version'"; }
-		else { $uninstall_cmd = "rm -Rf '{$rootfolder}/backup' '{$rootfolder}/conf' '{$rootfolder}/gui' '{$rootfolder}/locale-plex' '{$rootfolder}/log' '{$rootfolder}/system' '{$rootfolder}/plexinit' '{$rootfolder}/README' '{$rootfolder}/release_notes' '{$rootfolder}/version'"; }
+		if (isset($_POST['plexdata'])) {
+			$uninstall_plexdata = "{$rootfolder}/plexdata {$rootfolder}/plexdata-*";
+			}
+		else {
+			$uninstall_plexdata = "";
+			}
+		$uninstall_cmd = "rm -rf {$rootfolder}/backup {$rootfolder}/conf {$rootfolder}/gui {$rootfolder}/locale-plex {$rootfolder}/log {$uninstall_plexdata} {$rootfolder}/system {$rootfolder}/plexinit {$rootfolder}/README {$rootfolder}/release_notes {$rootfolder}/version";
 		mwexec($uninstall_cmd, true);
 		if (is_link("/usr/local/share/{$prdname}")) mwexec("rm /usr/local/share/{$prdname}", true);
 		if (is_link("/var/cache/pkg")) mwexec("rm /var/cache/pkg", true);
@@ -316,6 +335,7 @@ function enable_change(enable_change) {
 	document.iform.restart.disabled = endis;
 	document.iform.upgrade.disabled = endis;
 	document.iform.backup.disabled = endis;
+	document.iform.restore.disabled = endis;
 	document.iform.backup_path.disabled = endis;
 	document.iform.backup_pathbrowsebtn.disabled = endis;
 }
@@ -341,7 +361,7 @@ function enable_change(enable_change) {
 					<td class="vncellt"><?=gtext("Status");?></td>
 					<td class="vtable"><span name="getinfo" id="getinfo"><?=get_process_info()?></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PID:&nbsp;<span name="getinfo_pid" id="getinfo_pid"><?=get_process_pid()?></span></td>
 				</tr>
-				<?php html_filechooser("backup_path", gtext("Backup directory"), $backup_path, gtext("Directory to store archive.tar files of the plexdata folder."), $backup_path, true, 60);?>
+				<?php html_filechooser("backup_path", gtext("Backup directory"), $backup_path, gtext("Directory to store archive.tar files of the plexdata folder, use as file chooser for restoring from tar file."), $backup_path, true, 60);?>
 				<?php html_text("url", gtext("WebGUI")." ".gtext("URL"), $ipurl);?>
 			</table>
 			<div id="submit">
@@ -351,6 +371,7 @@ function enable_change(enable_change) {
 				<input name="restart" type="submit" class="formbtn" title="<?=gtext("Restart Plex Media Server");?>" value="<?=gtext("Restart");?>" />
 				<input name="upgrade" type="submit" class="formbtn" title="<?=gtext("Upgrade Extension and Plex Packages");?>" value="<?=gtext("Upgrade");?>" />
 				<input name="backup" type="submit" class="formbtn" title="<?=gtext("Backup Plexdata Folder");?>" value="<?=gtext("Backup");?>" />
+				<input name="restore" type="submit" class="formbtn" title="<?=gtext("Restore Plexdata Folder");?>" value="<?=gtext("Restore");?>" onclick="return confirm('<?=gettext("Do you really want to restore plex configuration from the selected file?");?>')" />
 			</div>
 			<div id="remarks">
 				<?php html_remark("note", gtext("Note"), sprintf(gtext("Use the %s button to create an archive.tar of the plexdata folder."), gtext("Backup")));?>

@@ -56,6 +56,7 @@ USRLOCALPATH="/usr/local/share"
 PLEXPATH="${USRLOCALPATH}/${PRDNAME}"
 PLEXRCD="/usr/local/etc/rc.d/${PRDNAME}"
 SUPPORTPATH="${CWDIR}/plexdata"
+TARFILE=${2}
 RCDPATH="/usr/local/etc/rc.d"
 CONFIG="/cf/conf/config.xml"
 RCCONF="/etc/rc.conf"
@@ -95,7 +96,7 @@ runtime_config()
 
 	# Set requested plex channel variables.
 	if [ -f "${CWDIR}${PLEXCONF}" ]; then
-		PLEXCHANNEL=$(sysrc -f ${CWDIR}${PLEXCONF} -n PLEX_CHANNEL)
+		PLEXCHANNEL=$(sysrc -f ${CWDIR}${PLEXCONF} -qn PLEX_CHANNEL)
 		if [ "${PLEXCHANNEL}" = "plexpass" ]; then
 			plexpass_channel
 		elif [ "${PLEXCHANNEL}" = "standard" ]; then
@@ -112,15 +113,13 @@ plex_detect()
 {
 	# Set the proper channel variables based on the installed plex package and write default configuration.
 	# We have to use this method since plexmediaserver --version or equivalent command is broken on FreeBSD.
+	STANDARD=1
+	PLEXPASS=1
 	if [ -f "${USRLOCALPATH}/${PRDNAME}/${CMDFILE}" ]; then
 		STANDARD=0
-	else
-		STANDARD=1
 	fi
 	if [ -f "${USRLOCALPATH}/${PRDNAME}-plexpass/${CMDFILE}" ]; then
 		PLEXPASS=0
-	else
-		PLEXPASS=1
 	fi
 
 	# Stop script execution if multiple plex versions detected.
@@ -196,6 +195,48 @@ plexdata_backup()
 			fi
 		else
 			error_notify "Backup directory not found."
+		fi
+	fi
+}
+
+plexdata_restore()
+{
+	if [ -f "${CWDIR}${PLEXCONF}" ]; then
+		BACKUPDIR=$(sysrc -f ${CWDIR}${PLEXCONF} -n BACKUP_DIR)
+		if [ -z "${BACKUPDIR}" ]; then
+			echo "Backup directory is not configured."
+			exit 1
+		elif [ ! -d "${BACKUPDIR}" ]; then
+			mkdir -p ${BACKUPDIR}
+		fi
+		if [ -f "${BACKUPDIR}/${TARFILE}" -o -f "${TARFILE}" ]; then
+			if [ -d "${CWDIR}/plexdata" ]; then
+				mv ${CWDIR}/plexdata ${CWDIR}/plexdata-`date +%Y-%m-%d-%H%M%S`
+				if [ 0 -ne $? ]; then
+					MSG="A problem has occurred while attempting to rename previous plexdata directory."
+					echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+					error_notify ${MSG}
+					exit 1
+				fi
+			fi
+			echo "Plexdata restore in progress..."
+			cd ${BACKUPDIR}
+			tar -xf ${TARFILE} -C ${CWDIR}/
+			if [ 0 -eq $? ]; then
+				MSG="Plexdata restored successfully."
+				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+				logger -t ${SCRIPTNAME} ${MSG}
+				if ps -acx | grep -q "Plex Media Server"; then
+					service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
+				fi
+				exit 0
+			else
+				MSG="A problem has occurred during the restore process."
+				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+				error_notify ${MSG}
+			fi
+		else
+			error_notify "Plexdata tar file not found."
 		fi
 	fi
 }
@@ -732,9 +773,9 @@ plex_init()
 runtime_config
 
 # Plexinit common control switches.
-while getopts ":aogtsprxbevuh" option; do
+while getopts ":aogtsprxbfevuh" option; do
 	case ${option} in
-		[h]) echo "Usage: ${SCRIPTNAME} -[option]";
+		[h]) echo "Usage: ${SCRIPTNAME} -[option] | [path|file]";
 		echo "Options:"
 		echo "        -s  Start ${FULLPRDNAME}."
 		echo "        -p  Stop ${FULLPRDNAME}."
@@ -744,6 +785,7 @@ while getopts ":aogtsprxbevuh" option; do
 		echo "        -t  Disable the addon GUI."
 		echo "        -x  Reset Plex Extension Config."
 		echo "        -b  Backup Plexdata Directory."
+		echo "        -f  Restore Plexdata Directory."
 		echo "        -e  Upgrade Plex package from tarball."
 		echo "        -v  Display product version."
 		echo "        -h  Display this help message."; exit 0 ;;
@@ -756,6 +798,7 @@ while getopts ":aogtsprxbevuh" option; do
 		[r]) service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart; exit 0 ;;
 		[x]) config_reset;;
 		[b]) plexdata_backup;;
+		[f]) plexdata_restore;;
 		[e]) extract_tarball;;
 		[v]) get_versions;;
 		[u]) pkg_upgrade; exit 0 ;;
