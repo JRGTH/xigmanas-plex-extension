@@ -199,6 +199,19 @@ plexdata_backup()
 	fi
 }
 
+plexdata_rename()
+{
+	if [ -d "${CWDIR}/plexdata" ]; then
+		mv ${CWDIR}/plexdata ${CWDIR}/plexdata-`date +%Y-%m-%d-%H%M%S`
+		if [ 0 -ne $? ]; then
+			MSG="A problem has occurred while attempting to rename previous plexdata directory."
+			echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+			error_notify ${MSG}
+			exit 1
+		fi
+	fi
+}
+
 plexdata_restore()
 {
 	if [ -f "${CWDIR}${PLEXCONF}" ]; then
@@ -209,19 +222,27 @@ plexdata_restore()
 		elif [ ! -d "${BACKUPDIR}" ]; then
 			mkdir -p ${BACKUPDIR}
 		fi
-		if [ -f "${BACKUPDIR}/${TARFILE}" -o -f "${TARFILE}" ]; then
-			if [ -d "${CWDIR}/plexdata" ]; then
-				mv ${CWDIR}/plexdata ${CWDIR}/plexdata-`date +%Y-%m-%d-%H%M%S`
-				if [ 0 -ne $? ]; then
-					MSG="A problem has occurred while attempting to rename previous plexdata directory."
-					echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
-					error_notify ${MSG}
+		if [ -f "${BACKUPDIR}/${TARFILE}" -o -f "${TARFILE}" -o -d "${CWDIR}/${TARFILE}" -o -d "${TARFILE}" ]; then
+			echo "Plexdata restore in progress..."
+			if [ -f "${BACKUPDIR}/${TARFILE}" -o -f "${TARFILE}" ]; then
+				if echo ${TARFILE} | grep -qw 'plexdata-[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-[0-9]\{6\}.tar'; then
+					plexdata_rename
+					cd ${BACKUPDIR}
+					tar -xf ${TARFILE} -C ${CWDIR}/
+				else
+					echo "Invalid plexdata tar file specified."
+					exit 1
+				fi
+			elif [ -d "${CWDIR}/${TARFILE}" -o -d "${TARFILE}" ]; then
+				if echo ${TARFILE} | grep -qw 'plexdata-[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-[0-9]\{6\}'; then
+					plexdata_rename
+					cd ${CWDIR}
+					mv ${TARFILE} plexdata
+				else
+					echo "Invalid plexdata directory specified."
 					exit 1
 				fi
 			fi
-			echo "Plexdata restore in progress..."
-			cd ${BACKUPDIR}
-			tar -xf ${TARFILE} -C ${CWDIR}/
 			if [ 0 -eq $? ]; then
 				MSG="Plexdata restored successfully."
 				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
@@ -236,7 +257,7 @@ plexdata_restore()
 				error_notify ${MSG}
 			fi
 		else
-			error_notify "Plexdata tar file not found."
+			error_notify "Plexdata directory/file not found."
 		fi
 	fi
 }
