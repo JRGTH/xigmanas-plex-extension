@@ -428,6 +428,7 @@ extension_upgrade()
 		# Logging the update event.
 		UPDATEVERSION=$(cat ${CWDIR}/version)
 		echo "${DATE}: ${APPNAME} upgraded to ${UPDATEVERSION}" >> ${PLEXLOGFILE}
+		echo "${APPNAME} upgraded to version ${UPDATEVERSION}"
 		echo "${APPNAME} package upgrade completed!"
 	else
 		# Perform an online extension upgrade.
@@ -450,6 +451,7 @@ extension_upgrade()
 				# Logging the update event.
 				UPDATEVERSION=$(cat ${CWDIR}/version)
 				echo "${DATE}: ${APPNAME} upgraded to ${UPDATEVERSION}" >> ${PLEXLOGFILE}
+				echo "${APPNAME} upgraded to version ${UPDATEVERSION}"
 				echo "${APPNAME} package upgrade completed!"
 			else
 				echo "${APPNAME} is on the latest version!"
