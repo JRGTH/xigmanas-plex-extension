@@ -39,230 +39,100 @@
 */
 require("auth.inc");
 require("guiconfig.inc");
+require_once("plex-gui-lib.inc");
 
-$application = "Plex Media Server";
 $pgtitle = array(gtext("Extensions"), "Plex Media Server");
 
-// For NAS4Free 10.x versions.
-$return_val = mwexec("/bin/cat /etc/prd.version | cut -d'.' -f1 | /usr/bin/grep '10'", true);
-if ($return_val == 0) {
-	if (is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ) {
-		for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) { if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) break; ++$i; }
-	}
-}
-
-// Initialize some variables.
-//$rootfolder = dirname($config['rc']['postinit']['cmd'][$i]);
-$pidfile = "/var/run/plex/plex.pid";
-$confdir = "/var/etc/plexconf";
-$cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' {$confdir}/conf/plex_config | cut -d'\"' -f2");
-$rootfolder = $cwdir;
-$configfile = "{$rootfolder}/conf/plex_config";
-$versionfile = "{$rootfolder}/version";
-$tarballversion = "{$rootfolder}/plexversion";
-$date = strftime('%c');
-$logfile = "{$rootfolder}/log/plex_ext.log";
-$logevent = "{$rootfolder}/log/plex_last_event.log";
-
-// Set the installed Plex package name.
-$return_val = mwexec("/usr/bin/grep 'PLEX_CHANNEL=\"plexpass\"' {$confdir}/conf/plex_config", true);
-if ($return_val == 0) {
-	$prdname = "plexmediaserver-plexpass";
-}
-else {
-	$prdname = "plexmediaserver";
-}
-
-if ($rootfolder == "") $input_errors[] = gtext("Extension installed with fault");
-else {
-// Initialize locales.
-	$textdomain = "/usr/local/share/locale";
-	$textdomain_plex = "/usr/local/share/locale-plex";
-	if (!is_link($textdomain_plex)) { mwexec("ln -s {$rootfolder}/locale-plex {$textdomain_plex}", true); }
-	bindtextdomain("xigmanas", $textdomain_plex);
-}
-if (is_file("{$rootfolder}/postinit")) unlink("{$rootfolder}/postinit");
-
-// Set default backup directory.
-if (1 == mwexec("/bin/cat {$configfile} | /usr/bin/grep 'BACKUP_DIR='")) {
-	if (is_file("{$configfile}")) exec("/usr/sbin/sysrc -f {$configfile} BACKUP_DIR={$rootfolder}/backup");
-}
-$backup_path = exec("/bin/cat {$configfile} | /usr/bin/grep 'BACKUP_DIR=' | cut -d'\"' -f2");
-
-// Retrieve IP@.
-$ipaddr = get_ipaddr($config['interfaces']['lan']['if']);
-$url = htmlspecialchars("http://{$ipaddr}:32400/web");
-$ipurl = "<a href='{$url}' target='_blank'>{$url}</a>";
-
-if ($_POST) {
-	if (isset($_POST['start']) && $_POST['start']) {
-		$return_val = mwexec("{$rootfolder}/plexinit -s", true);
-		if ($return_val == 0) {
-			$savemsg .= gtext("Plex Media Server started successfully.");
-			exec("echo '{$date}: {$application} successfully started' >> {$logfile}");
-		}
-		else {
-			$input_errors[] = gtext("Plex Media Server startup failed.");
-			exec("echo '{$date}: {$application} startup failed' >> {$logfile}");
-		}
-	}
-
-	if (isset($_POST['stop']) && $_POST['stop']) {
-		$return_val = mwexec("{$rootfolder}/plexinit -p", true);
-		if ($return_val == 0) {
-			$savemsg .= gtext("Plex Media Server stopped successfully.");
-			exec("echo '{$date}: {$application} successfully stopped' >> {$logfile}");
-		}
-		else {
-			$input_errors[] = gtext("Plex Media Server stop failed.");
-			exec("echo '{$date}: {$application} stop failed' >> {$logfile}");
-		}
-	}
-
-	if (isset($_POST['restart']) && $_POST['restart']) {
-		$return_val = mwexec("{$rootfolder}/plexinit -r", true);
-		if ($return_val == 0) {
-			$savemsg .= gtext("Plex Media Server restarted successfully.");
-			exec("echo '{$date}: {$application} successfully restarted' >> {$logfile}");
-		}
-		else {
-			$input_errors[] = gtext("Plex Media Server restart failed.");
-			exec("echo '{$date}: {$application} restart failed' >> {$logfile}");
-		}
-	}
-
-	if(isset($_POST['upgrade']) && $_POST['upgrade']):
-		$cmd = sprintf('%1$s/plexinit -u > %2$s',$rootfolder,$logevent);
-		$return_val = 0;
-		$output = [];
-		exec($cmd,$output,$return_val);
-		if($return_val == 0):
-			ob_start();
-			include("{$logevent}");
-			$ausgabe = ob_get_contents();
-			ob_end_clean(); 
-			$savemsg .= str_replace("\n", "<br />", $ausgabe)."<br />";
+if ($_POST):
+	if (isset($_POST['start']) && $_POST['start']):
+		$running = mwexec("/bin/ps -acx | /usr/bin/grep -q '{$application}'", true);
+		if ($running == 1):
+			$return_val = mwexec("{$rootfolder}/plexinit -s", true);
+			if ($return_val == 0):
+				$savemsg .= gtext("Plex Media Server started successfully.");
+				exec("echo '{$date}: {$application} successfully started' >> {$logfile}");
+			else:
+				$input_errors[] = gtext("Plex Media Server startup failed.");
+				exec("echo '{$date}: {$application} startup failed' >> {$logfile}");
+			endif;
 		else:
-			$input_errors[] = gtext('An error has occurred during upgrade process.');
-			$cmd = sprintf('echo %s: %s An error has occurred during upgrade process. >> %s',$date,$application,$logfile);
-			exec($cmd);
+			$savemsg .= gtext("Plex Media Server already started.");
 		endif;
 	endif;
 
-	if (isset($_POST['backup']) && $_POST['backup']) {
-		//$return_val = mwexec("mkdir -p {$backup_path} && cd {$rootfolder} && tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar {$backup_path}", true);
+	if (isset($_POST['stop']) && $_POST['stop']):
+		$running = mwexec("/bin/ps -acx | /usr/bin/grep -q '{$application}'", true);
+		if ($running == 0):
+			$return_val = mwexec("{$rootfolder}/plexinit -p", true);
+			if ($return_val == 0):
+				$savemsg .= gtext("Plex Media Server stopped successfully.");
+				exec("echo '{$date}: {$application} successfully stopped' >> {$logfile}");
+			else:
+				$input_errors[] = gtext("Plex Media Server stop failed.");
+				exec("echo '{$date}: {$application} stop failed' >> {$logfile}");
+			endif;
+		else:
+			$savemsg .= gtext("Plex Media Server already stopped.");
+		endif;
+	endif;
+
+	if (isset($_POST['restart']) && $_POST['restart']):
+		$return_val = mwexec("{$rootfolder}/plexinit -r", true);
+		if ($return_val == 0):
+			$savemsg .= gtext("Plex Media Server restarted successfully.");
+			exec("echo '{$date}: {$application} successfully restarted' >> {$logfile}");
+		else:
+			$input_errors[] = gtext("Plex Media Server restart failed.");
+			exec("echo '{$date}: {$application} restart failed' >> {$logfile}");
+		endif;
+	endif;
+
+	if (isset($_POST['backup']) && $_POST['backup']):
 		// The backup process is now handled by the plexinit script, also prevent gui hangs during backup process.
 		$return_val = mwexec("nohup {$rootfolder}/plexinit -b >/dev/null 2>&1 &", true);
-		if ($return_val == 0) {
+		if ($return_val == 0):
 			//$savemsg .= gtext("Plexdata backup created successfully in {$backup_path}.");
 			$savemsg .= gtext("Plexdata backup process started in the background successfully.");
 			//exec("echo '{$date}: Plexdata backup successfully created' >> {$logfile}");
-		}
-		else {
+		else:
 			$input_errors[] = gtext("Plexdata backup failed.");
 			//exec("echo '{$date}: Plexdata backup failed' >> {$logfile}");
-		}
-	}
+		endif;
+	endif;
 
-	if (isset($_POST['restore']) && $_POST['restore']) {
-		// The restore process is now handled by the plexinit script, also prevent gui hangs during restore process.
-		$backup_file = ($_POST['backup_path']);
-		$return_val = mwexec("nohup {$rootfolder}/plexinit -f {$backup_file} >/dev/null 2>&1 &", true);
-		if ($return_val == 0) {
-			$savemsg .= gtext("Plexdata restore process started in the background successfully.");
-			//exec("echo '{$date}: Plexdata restore successfully created' >> {$logfile}");
-		}
-		else {
-			$input_errors[] = gtext("Plexdata restore failed.");
-			//exec("echo '{$date}: Plexdata restore failed' >> {$logfile}");
-		}
-	}
-
-	if (isset($_POST['remove']) && $_POST['remove']) {
-		bindtextdomain("xigmanas", $textdomain);
-		if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
-		if (is_dir($confdir)) mwexec("rm -rf {$confdir}", true);
-		mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
-		mwexec("{$rootfolder}/plexinit -t", true);
-		exec("echo '{$date}: Extension GUI successfully removed' >> {$logfile}");
-		header("Location:index.php");
-	}
-
-	// Remove only extension related files during cleanup.
-	if (isset($_POST['uninstall']) && $_POST['uninstall']) {
-		bindtextdomain("xigmanas", $textdomain);
-		if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
-		if (is_dir($confdir)) mwexec("rm -rf {$confdir}", true);
-		mwexec("rm /usr/local/www/plex-gui.php && rm -R /usr/local/www/ext/plex-gui", true);
-		mwexec("{$rootfolder}/plexinit -t", true);
-		mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
-		mwexec("pkg delete -y -f -q {$prdname}", true);
-		if (isset($_POST['plexdata'])) {
-			$uninstall_plexdata = "{$rootfolder}/plexdata {$rootfolder}/plexdata-*";
-			}
-		else {
-			$uninstall_plexdata = "";
-			}
-		$uninstall_cmd = "rm -rf {$rootfolder}/backup {$rootfolder}/conf {$rootfolder}/gui {$rootfolder}/locale-plex {$rootfolder}/log {$uninstall_plexdata} {$rootfolder}/system {$rootfolder}/plexinit {$rootfolder}/README {$rootfolder}/release_notes {$rootfolder}/version";
-		mwexec($uninstall_cmd, true);
-		if (is_link("/usr/local/share/{$prdname}")) mwexec("rm /usr/local/share/{$prdname}", true);
-		if (is_link("/var/cache/pkg")) mwexec("rm /var/cache/pkg", true);
-		if (is_link("/var/db/pkg")) mwexec("rm /var/db/pkg && mkdir /var/db/pkg", true);
-		
-		// Remove postinit cmd in NAS4Free 10.x versions.
-		$return_val = mwexec("/bin/cat /etc/prd.version | cut -d'.' -f1 | /usr/bin/grep '10'", true);
-			if ($return_val == 0) {
-				if (is_array($config['rc']['postinit']) && is_array($config['rc']['postinit']['cmd'])) {
-					for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) {
-					if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) { unset($config['rc']['postinit']['cmd'][$i]); }
-					++$i;
-				}
-			}
-			write_config();
-		}
-
-		// Remove postinit cmd in NAS4Free later versions.
-		if (is_array($config['rc']) && is_array($config['rc']['param'])) {
-			$postinit_cmd = "{$rootfolder}/plexinit";
-			$value = $postinit_cmd;
-			$sphere_array = &$config['rc']['param'];
-			$updateconfigfile = false;
-		if (false !== ($index = array_search_ex($value, $sphere_array, 'value'))) {
-			unset($sphere_array[$index]);
-			$updateconfigfile = true;
-		}
-		if ($updateconfigfile) {
-			write_config();
-			$updateconfigfile = false;
-		}
-	}
-	header("Location:index.php");
-}
-
-	if (isset($_POST['save']) && $_POST['save']) {
+	if (isset($_POST['save']) && $_POST['save']):
 		// Ensure to have NO whitespace & trailing slash.
 		$backup_path = rtrim(trim($_POST['backup_path']),'/');
-		if ("{$backup_path}" == "") $backup_path = "{$rootfolder}/backup";
-			else exec("/usr/sbin/sysrc -f {$configfile} BACKUP_DIR={$backup_path}");
-		if (isset($_POST['enable'])) { 
+		if ("{$backup_path}" == ""):
+			$backup_path = "{$rootfolder}/backup";
+		else:
+			exec("/usr/sbin/sysrc -f {$configfile} BACKUP_DIR={$backup_path}");
+		endif;
+
+		if (isset($_POST['enable'])):
 			exec("/usr/sbin/sysrc -f {$configfile} PLEX_ENABLE=YES");
-			mwexec("{$rootfolder}/plexinit", true);
-			exec("echo '{$date}: Extension settings saved and enabled' >> {$logfile}");
-		}
-		else {
+			$running = mwexec("/bin/ps -acx | /usr/bin/grep -q '{$application}'", true);
+			if ($running == 1):
+				mwexec("{$rootfolder}/plexinit -s", true);
+				$savemsg .= gtext("Extension settings saved and enabled.");
+				exec("echo '{$date}: Extension settings saved and enabled' >> {$logfile}");
+			endif;
+		else:
 			exec("/usr/sbin/sysrc -f {$configfile} PLEX_ENABLE=NO");
-			$return_val = mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
-			if ($return_val == 0) {
-				$savemsg .= gtext("Plex Media Server stopped successfully.");
-				exec("echo '{$date}: Extension settings saved and disabled' >> {$logfile}");
-			}
-			else {
-				$input_errors[] = gtext("Plex Media Server stop failed.");
-				exec("echo '{$date}: {$application} stop failed' >> {$logfile}");
-			}
-		}
-	}
-}
+			$running = mwexec("/bin/ps -acx | /usr/bin/grep -q '{$application}'", true);
+			if ($running == 0):
+				$return_val = mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
+				if ($return_val == 0):
+					$savemsg .= gtext("Plex Media Server stopped successfully.");
+					exec("echo '{$date}: Extension settings saved and disabled' >> {$logfile}");
+				else:
+					$input_errors[] = gtext("Plex Media Server stop failed.");
+					exec("echo '{$date}: {$application} stop failed' >> {$logfile}");
+				endif;
+			endif;
+		endif;
+	endif;
+endif;
 
 // Update some variables.
 $plexenable = exec("/bin/cat {$configfile} | /usr/bin/grep 'PLEX_ENABLE=' | cut -d'\"' -f2");
@@ -270,14 +140,13 @@ $backup_path = exec("/bin/cat {$configfile} | /usr/bin/grep 'BACKUP_DIR=' | cut 
 
 function get_version_plex() {
 	global $tarballversion, $prdname;
-	if (is_file("{$tarballversion}")) {
+	if (is_file("{$tarballversion}")):
 		exec("/bin/cat {$tarballversion}", $result);
 		return ($result[0]);
-	}
-	else {
+	else:
 		exec("/usr/local/sbin/pkg info -I {$prdname}", $result);
 		return ($result[0]);
-	}
+	endif;
 }
 
 function get_version_ext() {
@@ -333,9 +202,7 @@ function enable_change(enable_change) {
 	document.iform.start.disabled = endis;
 	document.iform.stop.disabled = endis;
 	document.iform.restart.disabled = endis;
-	document.iform.upgrade.disabled = endis;
 	document.iform.backup.disabled = endis;
-	document.iform.restore.disabled = endis;
 	document.iform.backup_path.disabled = endis;
 	document.iform.backup_pathbrowsebtn.disabled = endis;
 }
@@ -343,6 +210,12 @@ function enable_change(enable_change) {
 </script>
 <form action="plex-gui.php" method="post" name="iform" id="iform" onsubmit="spinner()">
 	<table width="100%" border="0" cellpadding="0" cellspacing="0">
+		<tr><td class="tabnavtbl">
+    		<ul id="tabnav">
+    			<li class="tabact"><a href="plex-gui.php"><span><?=gettext("Plex");?></span></a></li>
+    			<li class="tabinact"><a href="plex-maintain-gui.php"><span><?=gettext("Maintenance");?></span></a></li>
+    		</ul>
+    	</td></tr>
 		<tr><td class="tabcont">
 			<?php if (!empty($input_errors)) print_input_errors($input_errors);?>
 			<?php if (!empty($savemsg)) print_info_box($savemsg);?>
@@ -369,22 +242,10 @@ function enable_change(enable_change) {
 				<input name="start" type="submit" class="formbtn" title="<?=gtext("Start Plex Media Server");?>" value="<?=gtext("Start");?>" />
 				<input name="stop" type="submit" class="formbtn" title="<?=gtext("Stop Plex Media Server");?>" value="<?=gtext("Stop");?>" />
 				<input name="restart" type="submit" class="formbtn" title="<?=gtext("Restart Plex Media Server");?>" value="<?=gtext("Restart");?>" />
-				<input name="upgrade" type="submit" class="formbtn" title="<?=gtext("Upgrade Extension and Plex Packages");?>" value="<?=gtext("Upgrade");?>" />
 				<input name="backup" type="submit" class="formbtn" title="<?=gtext("Backup Plexdata Folder");?>" value="<?=gtext("Backup");?>" />
-				<input name="restore" type="submit" class="formbtn" title="<?=gtext("Restore Plexdata Folder");?>" value="<?=gtext("Restore");?>" onclick="return confirm('<?=gettext("Do you really want to restore plex configuration from the selected file?");?>')" />
 			</div>
 			<div id="remarks">
 				<?php html_remark("note", gtext("Note"), sprintf(gtext("Use the %s button to create an archive.tar of the plexdata folder."), gtext("Backup")));?>
-			</div>
-			<table width="100%" border="0" cellpadding="6" cellspacing="0">
-				<?php html_separator();?>
-				<?php html_titleline(gtext("Uninstall"));?>
-				<?php html_checkbox("plexdata", gtext("Plexdata"), false, "<font color='red'>".gtext("Activate to delete user data (metadata and configuration) as well during the uninstall process.")."</font>", sprintf(gtext("If not activated the directory %s remains intact on the server."), "{$rootfolder}/plexdata"), false);?>
-				<?php html_separator();?>
-			</table>
-			<div id="submit1">
-				<input name="remove" type="submit" class="formbtn" title="<?=gtext("Remove Plex Extension GUI");?>" value="<?=gtext("Remove");?>" onclick="return confirm('<?=gtext("Plex Extension GUI will be removed, ready to proceed?");?>')" />
-				<input name="uninstall" type="submit" class="formbtn" title="<?=gtext("Uninstall Extension and Plex Media Server completely");?>" value="<?=gtext("Uninstall");?>" onclick="return confirm('<?=gtext("Plex Extension and Plex packages will be completely removed, ready to proceed?");?>')" />
 			</div>
 		</td></tr>
 	</table>

@@ -52,6 +52,7 @@ COMPATPATH1="/usr/local/lib/compat"
 COMPATPATH2="/usr/local/lib32/compat"
 COMPATPATH3="/usr/local/libdata/ldconfig"
 COMPATPATH4="/usr/local/libdata/ldconfig32"
+PLEXMINVER="1150573"
 USRLOCALPATH="/usr/local/share"
 PLEXPATH="${USRLOCALPATH}/${PRDNAME}"
 PLEXRCD="/usr/local/etc/rc.d/${PRDNAME}"
@@ -151,14 +152,14 @@ plexpass_channel()
 default_config()
 {
 	# Generate default configuration.
-	sysrc -f ${CWDIR}${PLEXCONF} PLEX_CHANNEL=${PLEXCH} PLEX_ENABLE=YES GUI_ENABLE=YES INSTALL_DIR=${CWDIR} >/dev/null 2>&1
+	sysrc -f ${CWDIR}${PLEXCONF} PLEX_CHANNEL=${PLEXCH} PLEX_ENABLE=NO GUI_ENABLE=YES INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 }
 
 config_reset()
 {
 	if [ -f "${CWDIR}${PLEXCONF}" ]; then
 		echo "Removing stale extension config and gui files..."
-		FILELIST="${CWDIR}/conf ${WWWPATH}/plex-gui.php ${WWWPATH}/ext/plex-gui ${USRLOCALPATH}/locale-plex ${PLEXCONFLINK} ${CWDIR}/version ${CWDIR}/plexversion"
+		FILELIST="${CWDIR}/conf ${WWWPATH}/plex-gui.php ${WWWPATH}/plex-gui-lib.inc ${WWWPATH}/plex-gui-lib.php ${WWWPATH}/plex-maintain-gui.php ${WWWPATH}/ext/plex-gui ${USRLOCALPATH}/locale-plex ${PLEXCONFLINK} ${CWDIR}/version ${CWDIR}/plexversion"
 		for file in ${FILELIST}; do
 			if [ -f "${file}" ] || [ -d "${file}" ]; then
 				rm -rf ${file}
@@ -244,7 +245,7 @@ plexdata_restore()
 				fi
 			fi
 			if [ 0 -eq $? ]; then
-				MSG="Plexdata restored successfully."
+				MSG="Plexdata restored successfully"
 				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
 				logger -t ${SCRIPTNAME} ${MSG}
 				if ps -acx | grep -q "Plex Media Server"; then
@@ -361,6 +362,12 @@ pkg_upgrade()
 	fi
 
 	# Check and upgrade extension package.
+	ext_upgrade
+}
+
+ext_upgrade()
+{
+	# Check and upgrade extension package.
 	if [ -f "${CWDIR}/version" ]; then
 		extension_upgrade
 	else
@@ -374,7 +381,7 @@ extract_tarball()
 	# This will overwrite/override the current Plex installation files and the
 	# pkg utility will still reference for the older package version from pkg info
 	# as expected, so we will create a plexversion file for the extension reference.
-	PLEXTARBALL=$(ls ${CWDIR} | egrep -o 'PlexMediaServer-([1-9]{1,}\.)+[0-9]{1,}.*-freebsd-amd64.tar.bz2')
+	PLEXTARBALL=$(ls ${CWDIR} | egrep -io 'PlexMediaServer-([1-9]{1,}\.)+[0-9]{1,}.*-freebsd-amd64.tar.bz2')
 	if [ -n "${PLEXTARBALL}" ]; then
 		SETVERSION=$(echo "${PLEXTARBALL}" | cut -d'-' -f2)
 		echo "${PRDNAME}${PKG_ARG}-${SETVERSION}    ${FULLPRDNAME} component" > ${CWDIR}/plexversion
@@ -550,8 +557,8 @@ EOF
 		if [ "${OBI_INSTALL}" != "ON" ]; then
 			php-cgi -f ${CWDIR}/postinit && rm ${CWDIR}/postinit
 		fi
-		# To set enable for the gui because at the installation Plex is started by default.
-		sysrc -f ${CWDIR}${PLEXCONF} PLEX_ENABLE=YES GUI_ENABLE=YES INSTALL_DIR=${CWDIR} >/dev/null 2>&1
+		# Do not start Plex by default.
+		sysrc -f ${CWDIR}${PLEXCONF} PLEX_ENABLE=NO GUI_ENABLE=YES INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 	fi
 }
 
@@ -597,6 +604,9 @@ gui_disable()
 	# Disable gui if -t option specified.
 	if [ -d "${CWDIR}/gui" ]; then
 		rm -f ${WWWPATH}/plex-gui.php
+		rm -r ${WWWPATH}/plex-gui-lib.inc
+		rm -f ${WWWPATH}/plex-gui-lib.php
+		rm -f ${WWWPATH}/plex-maintain-gui.php
 		rm -Rf ${WWWPATH}/ext/plex-gui
 		rm -f ${USRLOCALPATH}/locale-plex
 		rm -Rf ${PLEXCONFLINK}
@@ -656,25 +666,29 @@ pkg_symlinkdir()
 compat_symlinkdir()
 {
 	# Check and create/relink required symlinks/dirs for compat libs.
-	if [ ! -d "${COMPATPATH1}" ]; then
-		mkdir -m 0755 -p /usr/local/lib
-		mkdir -p ${CWDIR}/system/compat/lib/compat
-		ln -Ffhs ${CWDIR}/system/compat/lib/compat ${COMPATPATH1}
-	fi
-	if [ ! -d "${COMPATPATH2}" ]; then
-		mkdir -m 0755 -p /usr/local/lib32
-		mkdir -p ${CWDIR}/system/compat/lib32/compat
-		ln -Ffhs ${CWDIR}/system/compat/lib32/compat ${COMPATPATH2}
-	fi
-	if [ ! -d "${COMPATPATH3}" ]; then
-		mkdir -m 0755 -p /usr/local/libdata
-		mkdir -p ${CWDIR}/system/compat/libdata/ldconfig
-		ln -Ffhs ${CWDIR}/system/compat/libdata/ldconfig ${COMPATPATH3}
-	fi
-	if [ ! -d "${COMPATPATH4}" ]; then
-		mkdir -m 0755 -p /usr/local/libdata
-		mkdir -p ${CWDIR}/system/compat/libdata/ldconfig32
-		ln -Ffhs ${CWDIR}/system/compat/libdata/ldconfig32 ${COMPATPATH4}
+	# This is for backward compatibility only.
+	PLEXVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d . | sed 's/_[0-9]//g')
+	if [ "${PLEXVERSION}" -lt "${PLEXMINVER}" ]; then
+		if [ ! -d "${COMPATPATH1}" ]; then
+			mkdir -m 0755 -p /usr/local/lib
+			mkdir -p ${CWDIR}/system/compat/lib/compat
+			ln -Ffhs ${CWDIR}/system/compat/lib/compat ${COMPATPATH1}
+		fi
+		if [ ! -d "${COMPATPATH2}" ]; then
+			mkdir -m 0755 -p /usr/local/lib32
+			mkdir -p ${CWDIR}/system/compat/lib32/compat
+			ln -Ffhs ${CWDIR}/system/compat/lib32/compat ${COMPATPATH2}
+		fi
+		if [ ! -d "${COMPATPATH3}" ]; then
+			mkdir -m 0755 -p /usr/local/libdata
+			mkdir -p ${CWDIR}/system/compat/libdata/ldconfig
+			ln -Ffhs ${CWDIR}/system/compat/libdata/ldconfig ${COMPATPATH3}
+		fi
+		if [ ! -d "${COMPATPATH4}" ]; then
+			mkdir -m 0755 -p /usr/local/libdata
+			mkdir -p ${CWDIR}/system/compat/libdata/ldconfig32
+			ln -Ffhs ${CWDIR}/system/compat/libdata/ldconfig32 ${COMPATPATH4}
+		fi
 	fi
 }
 
@@ -722,7 +736,7 @@ ext_enable_disable()
 	fi
 }
 
-plex_rcparam_start()
+plex_rc_params()
 {
 	# Plex Media Server rc parameters.
 	if ! sysrc -f ${RCCONF} -n ${CMDNAME}${CMD_ARG}_enable | grep -q "NO"; then
@@ -735,10 +749,10 @@ plex_rcparam_start()
 		sysrc ${CMDNAME}${CMD_ARG}_maxplugins="6" >/dev/null 2>&1
 	fi
 
-	# Start Plex Media Server.
-	if ! ps -acx | grep -q "Plex Media Server"; then
-		service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart
-	fi
+	# Start Plex Media Server by default.
+	#if ! ps -acx | grep -q "Plex Media Server"; then
+	#	service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart
+	#fi
 
 	# Log on startup success, else logging with faults.
 	if [ $? -eq 0 ]; then
@@ -761,6 +775,39 @@ get_versions()
 		echo "Can not determine plex version."
 	fi
 	exit 0
+}
+
+plex_start()
+{
+	# Start Plex Media Server.
+	service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart
+	if [ $? -eq 0 ]; then
+		exit 0
+	else
+		exit 1
+	fi
+}
+
+plex_stop()
+{
+	# Stop Plex Media Server.
+	service ${CMDNAME}${CMD_ARG} onestop 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestop
+	if [ $? -eq 0 ]; then
+		exit 0
+	else
+		exit 1
+	fi
+}
+
+plex_restart()
+{
+	# Restart Plex Media Server.
+	service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
+	if [ $? -eq 0 ]; then
+		exit 0
+	else
+		exit 1
+	fi
 }
 
 plex_init()
@@ -787,14 +834,14 @@ plex_init()
 	plex_usergroup
 	product_check
 	ext_enable_disable
-	plex_rcparam_start
+	plex_rc_params
 }
 
 # Run-time configuration.
 runtime_config
 
 # Plexinit common control switches.
-while getopts ":aogtsprxbfevuh" option; do
+while getopts ":aogtsprxbfevuUh" option; do
 	case ${option} in
 		[h]) echo "Usage: ${SCRIPTNAME} -[option] | [path|file]";
 		echo "Options:"
@@ -802,6 +849,7 @@ while getopts ":aogtsprxbfevuh" option; do
 		echo "        -p  Stop ${FULLPRDNAME}."
 		echo "        -r  Restart ${FULLPRDNAME}."
 		echo "        -u  Upgrade Plex/Extension packages."
+		echo "        -U  Upgrade Extension packages only."
 		echo "        -g  Enables the addon GUI."
 		echo "        -t  Disable the addon GUI."
 		echo "        -x  Reset Plex Extension Config."
@@ -814,15 +862,16 @@ while getopts ":aogtsprxbfevuh" option; do
 		[o]) OBI_INSTALL="ON";; # To prevent nested PHP-CGI call for installation with OBI.
 		[g]) gui_enable; exit 0 ;; # For enable the addon gui.
 		[t]) gui_disable; exit 0 ;; # For disable the addon gui.
-		[s]) service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart; exit 0 ;;
-		[p]) service ${CMDNAME}${CMD_ARG} onestop 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestop; exit 0 ;;
-		[r]) service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart; exit 0 ;;
+		[s]) plex_start;;
+		[p]) plex_stop;;
+		[r]) plex_restart;;
 		[x]) config_reset;;
 		[b]) plexdata_backup;;
 		[f]) plexdata_restore;;
 		[e]) extract_tarball;;
 		[v]) get_versions;;
 		[u]) pkg_upgrade; exit 0 ;;
+		[U]) ext_upgrade; exit 0 ;;
 		[?]) echo "Invalid option, -h for usage."; exit 1 ;;
 	esac
 done
