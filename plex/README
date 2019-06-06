@@ -1,10 +1,12 @@
-Description:
+XigmaNAS Plex Extension
+=======================
 
- This is the NAS4Free Plex Extension which seamlessly integrates the popular Plex Media Server.
+**Description**
 
-Credits:
+ This is the NAS4Free/XigmaNAS Plex Extension which seamlessly integrates the popular Plex Media Server.
 
- Andreas Schmidhuber (crestAT) GUI complements.
- J.M. Rivera (JRGTH) core script.
+**Credits**
 
-Additional information and description in the NAS4Free Extensions forum: http://forums.nas4free.org/viewforum.php?f=71
+ Andreas Schmidhuber (crestAT) GUI complements, J.M. Rivera (JRGTH) core script.
+
+Additional information and description in the: <a href="https://www.xigmanas.com/forums/viewforum.php?f=71">XigmaNAS Extensions Forum</a>
