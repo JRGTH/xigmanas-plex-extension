@@ -152,6 +152,9 @@ plexpass_channel()
 default_config()
 {
 	# Generate default configuration.
+	if [ ! -f "${CWDIR}${PLEXCONF}" ]; then
+		touch ${CWDIR}${PLEXCONF}
+	fi
 	sysrc -f ${CWDIR}${PLEXCONF} PLEX_CHANNEL=${PLEXCH} PLEX_ENABLE=NO GUI_ENABLE=YES INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 }
 
@@ -883,6 +886,9 @@ done
 if [ "${OPT_INSTALL}" = 1 ]; then
 	if [ ! -d ${CWDIR}/conf ]; then
 		mkdir -p ${CWDIR}/conf
+	fi
+	if [ ! -f "${CWDIR}${PLEXCONF}" ]; then
+		touch ${CWDIR}${PLEXCONF}
 	fi
 	sysrc -f ${CWDIR}${PLEXCONF} PLEX_CHANNEL=plexpass >/dev/null 2>&1
 	plexpass_channel
