@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.3.007....Always create plex rc parameters.
 4.3.006....Minor wording changes.
 4.3.005....Just use quiet switch for sysrc.
 4.3.004....Fallback to rc.conf params on prior versions.

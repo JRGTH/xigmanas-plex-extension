@@ -647,6 +647,20 @@ plex_usergroup()
 	fi
 }
 
+plex_rc_params()
+{
+	# Plex Media Server rc parameters.
+	if ! sysrc -f ${RCCONF} -qn ${CMDNAME}${CMD_ARG}_enable | grep -q "NO"; then
+		sysrc ${CMDNAME}${CMD_ARG}_enable="NO" >/dev/null 2>&1
+	fi
+	if ! sysrc -f ${RCCONF} -qn ${CMDNAME}${CMD_ARG}_support_path | grep -q "${SUPPORTPATH}"; then
+		sysrc ${CMDNAME}${CMD_ARG}_support_path="${SUPPORTPATH}" >/dev/null 2>&1
+	fi
+	if ! sysrc -f ${RCCONF} -qn ${CMDNAME}${CMD_ARG}_maxplugins | grep -q "6"; then
+		sysrc ${CMDNAME}${CMD_ARG}_maxplugins="6" >/dev/null 2>&1
+	fi
+}
+
 pkg_symlinkdir()
 {
 	# Check and create/relink required symlinks/dirs for package cache and db.
@@ -748,37 +762,6 @@ ext_enable_disable()
 	fi
 }
 
-plex_rc_params()
-{
-	# Plex Media Server rc parameters.
-	if ! sysrc -f ${RCCONF} -qn ${CMDNAME}${CMD_ARG}_enable | grep -q "NO"; then
-		sysrc ${CMDNAME}${CMD_ARG}_enable="NO" >/dev/null 2>&1
-	fi
-	if ! sysrc -f ${RCCONF} -qn ${CMDNAME}${CMD_ARG}_support_path | grep -q "${SUPPORTPATH}"; then
-		sysrc ${CMDNAME}${CMD_ARG}_support_path="${SUPPORTPATH}" >/dev/null 2>&1
-	fi
-	if ! sysrc -f ${RCCONF} -qn ${CMDNAME}${CMD_ARG}_maxplugins | grep -q "6"; then
-		sysrc ${CMDNAME}${CMD_ARG}_maxplugins="6" >/dev/null 2>&1
-	fi
-
-	# Start Plex Media Server if enabled.
-	if ! ps -acx | grep -q "Plex Media Server"; then
-		PLEX_STATUS=$(sysrc -f ${CWDIR}${PLEXCONF} -qn PLEX_ENABLE)
-		if [ "${PLEX_STATUS}" = "YES" ]; then
-			plex_start
-		fi
-	fi
-
-	# Log on startup success, else logging with faults.
-	if [ $? -eq 0 ]; then
-		MSG="script has been started successfully!"
-		logger -t ${SCRIPTNAME} ${MSG}
-	else
-		MSG="script started with faults"
-		logger -t ${SCRIPTNAME} ${MSG}
-	fi
-}
-
 get_versions()
 {
 	echo "${APPNAME} ${APPVERSION}"
@@ -790,6 +773,26 @@ get_versions()
 		echo "Can not determine plex version."
 	fi
 	exit 0
+}
+
+plex_log_start()
+{
+	# Log script startup.
+	if [ $? -eq 0 ]; then
+		MSG="script has been started successfully!"
+		logger -t ${SCRIPTNAME} ${MSG}
+	else
+		MSG="script started with faults"
+		logger -t ${SCRIPTNAME} ${MSG}
+	fi
+
+	# Auto start Plex Media Server if enabled.
+	if ! ps -acx | grep -q "Plex Media Server"; then
+		PLEX_STATUS=$(sysrc -f ${CWDIR}${PLEXCONF} -qn PLEX_ENABLE)
+		if [ "${PLEX_STATUS}" = "YES" ]; then
+			plex_start
+		fi
+	fi
 }
 
 plex_start()
@@ -847,9 +850,10 @@ plex_init()
 	ext_initial_download
 	plex_initial_download
 	plex_usergroup
+	plex_rc_params
 	product_check
 	ext_enable_disable
-	plex_rc_params
+	plex_log_start
 }
 
 # Run-time configuration.
