@@ -751,17 +751,14 @@ ext_enable_disable()
 plex_rc_params()
 {
 	# Plex Media Server rc parameters.
-	get_plex_version
-	if [ "${PLEXVERSION}" -lt "${PLEXMINVER}" ]; then
-		if ! sysrc -f ${RCCONF} -n ${CMDNAME}${CMD_ARG}_enable | grep -q "NO"; then
-			sysrc ${CMDNAME}${CMD_ARG}_enable="NO" >/dev/null 2>&1
-		fi
-		if ! sysrc -f ${RCCONF} -n ${CMDNAME}${CMD_ARG}_support_path | grep -q "${SUPPORTPATH}"; then
-			sysrc ${CMDNAME}${CMD_ARG}_support_path="${SUPPORTPATH}" >/dev/null 2>&1
-		fi
-		if ! sysrc -f ${RCCONF} -n ${CMDNAME}${CMD_ARG}_maxplugins | grep -q "6"; then
-			sysrc ${CMDNAME}${CMD_ARG}_maxplugins="6" >/dev/null 2>&1
-		fi
+	if ! sysrc -f ${RCCONF} -qn ${CMDNAME}${CMD_ARG}_enable | grep -q "NO"; then
+		sysrc ${CMDNAME}${CMD_ARG}_enable="NO" >/dev/null 2>&1
+	fi
+	if ! sysrc -f ${RCCONF} -qn ${CMDNAME}${CMD_ARG}_support_path | grep -q "${SUPPORTPATH}"; then
+		sysrc ${CMDNAME}${CMD_ARG}_support_path="${SUPPORTPATH}" >/dev/null 2>&1
+	fi
+	if ! sysrc -f ${RCCONF} -qn ${CMDNAME}${CMD_ARG}_maxplugins | grep -q "6"; then
+		sysrc ${CMDNAME}${CMD_ARG}_maxplugins="6" >/dev/null 2>&1
 	fi
 
 	# Start Plex Media Server if enabled.
