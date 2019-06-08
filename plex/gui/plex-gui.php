@@ -234,7 +234,7 @@ function enable_change(enable_change) {
 					<td class="vncellt"><?=gtext("Status");?></td>
 					<td class="vtable"><span name="getinfo" id="getinfo"><?=get_process_info()?></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PID:&nbsp;<span name="getinfo_pid" id="getinfo_pid"><?=get_process_pid()?></span></td>
 				</tr>
-				<?php html_filechooser("backup_path", gtext("Backup directory"), $backup_path, gtext("Directory to store archive.tar files of the plexdata folder, use as file chooser for restoring from tar file."), $backup_path, true, 60);?>
+				<?php html_filechooser("backup_path", gtext("Backup directory"), $backup_path, gtext("Directory to store archive.tar files of the plexdata folder."), $backup_path, true, 60);?>
 				<?php html_text("url", gtext("WebGUI")." ".gtext("URL"), $ipurl);?>
 			</table>
 			<div id="submit">

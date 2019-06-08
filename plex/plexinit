@@ -827,7 +827,7 @@ plex_restart()
 
 plex_init()
 {
-	echo "Initializing..."
+	echo "Initializing ${FULLPRDNAME}..."
 	# Check for system compatibility.
 	if [ ! "${PLATFORM}" = "amd64" ]; then
 		echo "Unsupported platform!"; exit 1
