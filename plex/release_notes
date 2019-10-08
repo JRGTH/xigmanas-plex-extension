@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.3.008....Bump min product version to 11, minor changes.
 4.3.007....Always create plex rc parameters.
 4.3.006....Minor wording changes.
 4.3.005....Just use quiet switch for sysrc.

@@ -3,7 +3,7 @@ XigmaNAS Plex Extension
 
 **Description**
 
- This is the NAS4Free/XigmaNAS Plex Extension which seamlessly integrates the popular Plex Media Server.
+ This is the XigmaNAS Plex Extension which seamlessly integrates the popular Plex Media Server.
 
 **Credits**
 

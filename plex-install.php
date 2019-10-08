@@ -2,11 +2,11 @@
 /* 
 	plex-install.php
 
-	Installer for the NAS4Free "Plex Media Server*" add-on created by J.M Rivera.
-	(http://forums.nas4free.org/viewtopic.php?f=71&t=11184)
+	Installer for the XigmaNAS "Plex Media Server*" add-on created by J.M Rivera.
+	(https://www.xigmanas.com/forums/viewtopic.php?f=71&t=11184)
 	*Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
 
-	Installer based on OneButtonInstaller(OBI.php) NAS4Free extension created by Andreas Schmidhuber(crest).
+	Installer based on OneButtonInstaller(OBI.php) XigmaNAS extension created by Andreas Schmidhuber(crest).
 	Credits to Andreas Schmidhuber(crest).
 
 	Copyright (c) 2015 - 2016 Andreas Schmidhuber
