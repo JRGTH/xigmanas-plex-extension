@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.3.010....Fix enable checkbox change to persist.
 4.3.009....Fix enable checkbox for persistence.
 4.3.008....Bump min product version to 11, minor changes.
 4.3.007....Always create plex rc parameters.

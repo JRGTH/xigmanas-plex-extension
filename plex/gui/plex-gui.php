@@ -135,7 +135,7 @@ if ($_POST):
 endif;
 
 // Update some variables.
-$plexenable['enable'] = exec("/bin/cat {$configfile} | /usr/bin/grep 'PLEX_ENABLE=' | cut -d'\"' -f2");
+$pconfig['enable'] = exec("/bin/cat {$configfile} | /usr/bin/grep 'PLEX_ENABLE=' | cut -d'\"' -f2");
 $backup_path = exec("/bin/cat {$configfile} | /usr/bin/grep 'BACKUP_DIR=' | cut -d'\"' -f2");
 
 function get_version_plex() {
@@ -220,7 +220,7 @@ function enable_change(enable_change) {
 			<?php if (!empty($input_errors)) print_input_errors($input_errors);?>
 			<?php if (!empty($savemsg)) print_info_box($savemsg);?>
 			<table width="100%" border="0" cellpadding="6" cellspacing="0">
-				<?php html_titleline_checkbox("enable", gtext("Plex"), $plexenable['enable'], gtext("Enable"));?>
+				<?php html_titleline_checkbox("enable", gtext("Plex"), $pconfig['enable'] == "YES", gtext("Enable"), "enable_change(false)");?>
 				<?php html_text("installation_directory", gtext("Installation directory"), sprintf(gtext("The extension is installed in %s"), $rootfolder));?>
 				<tr>
 					<td class="vncellt"><?=gtext("Plex version");?></td>
