@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.3.011....Update translations thanks to lijinbiao and Bruno Crocquevieille.
 4.3.010....Fix enable checkbox change to persist.
 4.3.009....Fix enable checkbox for persistence.
 4.3.008....Bump min product version to 11, minor changes.
