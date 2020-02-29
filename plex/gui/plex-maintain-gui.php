@@ -77,6 +77,43 @@ if ($_POST):
 		endif;
 	endif;
 
+	// Plex Media Server tarball upload.
+	if (isset($_POST['submit'])):
+		switch($_POST['submit']):
+			case 'upload':
+				$tarballfile = $_FILES['ulfile']['name'];
+				$source = $_FILES['ulfile']['tmp_name'];
+				$destination = sprintf("{$rootfolder}/%s",$_FILES['ulfile']['name']);
+
+				if (!preg_match('/PlexMediaServer-.*.tar.bz2/', $_FILES['ulfile']['name'])):
+					$input_errors[] = gtext("Invalid Plex Media Server tarball archive.");
+				else:
+					if(is_uploaded_file($source)):
+						move_uploaded_file($source,$destination);
+						//$savemsg .= gtext('File uploaded to:') . sprintf(' %s',$destination);
+						$cmd = sprintf('%1$s/plexinit -e > %2$s',$rootfolder,$logevent);
+						$return_val = 0;
+						$output = [];
+						exec($cmd,$output,$return_val);
+						if($return_val == 0):
+							ob_start();
+							include("{$logevent}");
+							$ausgabe = ob_get_contents();
+							ob_end_clean(); 
+							$savemsg .= str_replace("\n", "<br />", $ausgabe)."<br />";
+						else:
+							$input_errors[] = gtext('An error has occurred during tarball upgrade process.');
+							$cmd = sprintf('echo %s: %s An error has occurred during tarball upgrade process. >> %s',$date,$application,$logfile);
+							exec($cmd);
+						endif;
+					else:
+						$input_errors[] = gtext("File upload failed.");
+					endif;
+				endif;
+				break;
+		endswitch;
+	endif;
+
 	if (isset($_POST['remove']) && $_POST['remove']):
 		bindtextdomain("xigmanas", $textdomain);
 		if (is_link($textdomain_plex)) mwexec("rm -f {$textdomain_plex}", true);
@@ -174,14 +211,14 @@ bindtextdomain("xigmanas", $textdomain_plex);
 <!--
 //-->
 </script>
-<form action="plex-maintain-gui.php" method="post" name="iform" id="iform" onsubmit="spinner()">
+<form action="plex-maintain-gui.php" method="post" enctype="multipart/form-data" name="iform" id="iform" onsubmit="spinner()">
 	<table width="100%" border="0" cellpadding="0" cellspacing="0">
 		<tr><td class="tabnavtbl">
-    		<ul id="tabnav">
-    			<li class="tabinact"><a href="plex-gui.php"><span><?=gettext("Plex");?></span></a></li>
-    			<li class="tabact"><a href="plex-maintain-gui.php"><span><?=gettext("Maintenance");?></span></a></li>
-    		</ul>
-    	</td></tr>
+			<ul id="tabnav">
+				<li class="tabinact"><a href="plex-gui.php"><span><?=gettext("Plex");?></span></a></li>
+				<li class="tabact"><a href="plex-maintain-gui.php"><span><?=gettext("Maintenance");?></span></a></li>
+			</ul>
+		</td></tr>
 		<tr><td class="tabcont">
 			<?php if (!empty($input_errors)) print_input_errors($input_errors);?>
 			<?php if (!empty($savemsg)) print_info_box($savemsg);?>
@@ -195,9 +232,21 @@ bindtextdomain("xigmanas", $textdomain_plex);
 				<input name="upgrade" type="submit" class="formbtn" title="<?=gtext("Upgrade Extension and Plex Packages");?>" value="<?=gtext("Upgrade");?>" />
 				<input name="restore" type="submit" class="formbtn" title="<?=gtext("Restore Plexdata Folder");?>" value="<?=gtext("Restore");?>" onclick="return confirm('<?=gettext("Do you really want to restore plex configuration from the selected file?");?>')" />
 			</div>
-			<div id="remarks">
-				<?php html_remark("note", gtext("Note"), sprintf(gtext("Use the %s button to restore plexdata folder from the selected item."), gtext("Restore")));?>
-			</div>
+			<table width="100%" border="0" cellpadding="6" cellspacing="0">
+			<colgroup>
+				<col class="area_data_settings_col_tag">
+				<col class="area_data_settings_col_data">
+			</colgroup>
+				<?php html_separator();?>
+				<?php html_titleline(gtext("Plex Media Server Tarball"));?>
+				<td class="celltag"><?=gtext('Tarball file chooser');?></td>
+				<td class="celldata"><input name="ulfile" type="file" class="formbtn" id="ulfile"/></td>
+			<tr>
+			<td class="celltag"><?=gtext('Upload .tar.bz2 file');?></td>
+			<td class="celldata">
+				<?php echo html_button('upload',gettext('Upload')); ?>
+			</td>
+			</table>
 			<table width="100%" border="0" cellpadding="6" cellspacing="0">
 				<?php html_separator();?>
 				<?php html_titleline(gtext("Uninstall"));?>
@@ -207,6 +256,11 @@ bindtextdomain("xigmanas", $textdomain_plex);
 			<div id="submit1">
 				<input name="remove" type="submit" class="formbtn" title="<?=gtext("Disable Plex Extension GUI");?>" value="<?=gtext("Disable");?>" onclick="return confirm('<?=gtext("Plex Extension GUI will be disabled, ready to proceed?");?>')" />
 				<input name="uninstall" type="submit" class="formbtn" title="<?=gtext("Uninstall Extension and Plex Media Server completely");?>" value="<?=gtext("Uninstall");?>" onclick="return confirm('<?=gtext("Plex Extension and Plex packages will be completely removed, ready to proceed?");?>')" />
+			</div>
+				<div id="remarks">
+				<?php html_remark("note", gtext("Notes"), sprintf(gtext("Use the %s button to restore plexdata folder from the selected item."), gtext("Restore")));?>
+				<div id="enumeration"><ul><li><a href="https://www.plex.tv/media-server-downloads/" target="_blank" > Official Plex Media Server Downloads</a></li></ul></div>
+				<div id="enumeration"><ul><li><a href="https://forums.plex.tv/" target="_blank" > Official Plex Forum</a></li></ul></div>			
 			</div>
 		</td></tr>
 	</table>
