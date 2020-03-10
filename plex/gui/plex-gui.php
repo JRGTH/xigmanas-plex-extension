@@ -43,6 +43,15 @@ require_once("plex-gui-lib.inc");
 
 $pgtitle = array(gtext("Extensions"), "Plex Media Server");
 
+if(!check_plex_exist()):
+	$errormsg = gtext('No Plex Media Server package installed yet.')
+			. ' '
+			. '<a href="' . 'plex-maintain-gui.php' . '">'
+			. gtext('Please choose an installation method first.')
+			. '</a>';
+		$prerequisites_ok = false;
+endif;
+
 if ($_POST):
 	if (isset($_POST['start']) && $_POST['start']):
 		$running = mwexec("/bin/ps -acx | /usr/bin/grep -q '{$application}'", true);
@@ -217,6 +226,7 @@ function enable_change(enable_change) {
     		</ul>
     	</td></tr>
 		<tr><td class="tabcont">
+			<?php if (!empty($errormsg)) print_error_box($errormsg);?>
 			<?php if (!empty($input_errors)) print_input_errors($input_errors);?>
 			<?php if (!empty($savemsg)) print_info_box($savemsg);?>
 			<table width="100%" border="0" cellpadding="6" cellspacing="0">

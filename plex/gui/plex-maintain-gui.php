@@ -110,7 +110,24 @@ if ($_POST):
 						$input_errors[] = gtext("File upload failed.");
 					endif;
 				endif;
-				break;
+			break;
+			case 'pkginstall';
+				$cmd = sprintf('%1$s/plexinit -i > %2$s',$rootfolder,$logevent);
+				$return_val = 0;
+				$output = [];
+				exec($cmd,$output,$return_val);
+				if($return_val == 0):
+					ob_start();
+					include("{$logevent}");
+					$ausgabe = ob_get_contents();
+					ob_end_clean(); 
+					$savemsg .= str_replace("\n", "<br />", $ausgabe)."<br />";
+				else:
+					$input_errors[] = gtext('An error has occurred during installation process.');
+					$cmd = sprintf('echo %s: %s An error has occurred during installation process. >> %s',$date,$application,$logfile);
+					exec($cmd);
+				endif;
+			break;
 		endswitch;
 	endif;
 
@@ -132,13 +149,13 @@ if ($_POST):
 		mwexec("rm {$wwwpath}/plex-gui.php && {$wwwpath}/plex-gui-lib.inc && {$wwwpath}/plex-maintain-gui.php && rm -R {$wwwpath}/ext/plex-gui", true);
 		mwexec("{$rootfolder}/plexinit -t", true);
 		mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
-		mwexec("pkg delete -y -f -q {$prdname}", true);
+		mwexec("pkg delete -y -f -q {$prdname} || rm -rf {$usrpath}/{$prdname} {$rcdpath}/{$rcdname}", true);
 		if (isset($_POST['plexdata'])):
 			$uninstall_plexdata = "{$rootfolder}/plexdata {$rootfolder}/plexdata-*";	
 		else:
 			$uninstall_plexdata = "";
 		endif;
-		$uninstall_cmd = "rm -rf {$rootfolder}/backup {$rootfolder}/conf {$rootfolder}/gui {$rootfolder}/locale-plex {$rootfolder}/log {$uninstall_plexdata} {$rootfolder}/system {$rootfolder}/plexinit {$rootfolder}/README {$rootfolder}/release_notes {$rootfolder}/version";
+		$uninstall_cmd = "rm -rf {$rootfolder}/backup {$rootfolder}/conf {$rootfolder}/gui {$rootfolder}/locale-plex {$rootfolder}/log {$uninstall_plexdata} {$rootfolder}/system {$rootfolder}/plexinit {$rootfolder}/plexversion {$rootfolder}/README {$rootfolder}/release_notes {$rootfolder}/version";
 		mwexec($uninstall_cmd, true);
 		if (is_link("/usr/local/share/{$prdname}")) mwexec("rm /usr/local/share/{$prdname}", true);
 		if (is_link("/var/cache/pkg")) mwexec("rm /var/cache/pkg", true);
@@ -226,7 +243,7 @@ bindtextdomain("xigmanas", $textdomain_plex);
 				<?php html_titleline(gtext("Upgrade & Restore"));?>
 				<?php html_text("installation_directory", gtext("Installation directory"), sprintf(gtext("The extension is installed in %s"), $rootfolder));?>
 				<?php html_filechooser("backup_path", gtext("Plexdata archive"), "", gtext("Select a previous plexdata backup file or directory to restore from."), $backup_path, true, 60);?>
-				<?php html_checkbox("plex_upgrade", gtext("Plex package upgrade"), false, "<font color='red'>".gtext("Upgrade the Plex Media Server component.")."</font>", sprintf(gtext("If not activated, only the extension files will be upgraded."), ""), false);?>
+				<?php html_checkbox("plex_upgrade", gtext("Plex package upgrade"), false, "<font color='red'>".gtext("Upgrade the Plex Media Server component (overrides maually uploaded tarball).")."</font>", sprintf(gtext("If not activated, only the extension files will be upgraded, this has no effect on initial installations from tarball."), ""), false);?>
 			</table>
 			<div id="submit">
 				<input name="upgrade" type="submit" class="formbtn" title="<?=gtext("Upgrade Extension and Plex Packages");?>" value="<?=gtext("Upgrade");?>" />
@@ -238,7 +255,7 @@ bindtextdomain("xigmanas", $textdomain_plex);
 				<col class="area_data_settings_col_data">
 			</colgroup>
 				<?php html_separator();?>
-				<?php html_titleline(gtext("Plex Media Server Tarball"));?>
+				<?php html_titleline(gtext("Plex Media Server Tarball Install/Upgrade"));?>
 				<td class="celltag"><?=gtext('Tarball file chooser');?></td>
 				<td class="celldata"><input name="ulfile" type="file" class="formbtn" id="ulfile"/></td>
 			<tr>
@@ -247,6 +264,21 @@ bindtextdomain("xigmanas", $textdomain_plex);
 				<?php echo html_button('upload',gettext('Upload')); ?>
 			</td>
 			</table>
+			<?php if(!check_plex_exist()): ?>
+				<table width="100%" border="0" cellpadding="6" cellspacing="0">
+				<colgroup>
+					<col class="area_data_settings_col_tag">
+					<col class="area_data_settings_col_data">
+				</colgroup>
+					<?php html_separator();?>
+					<?php html_titleline(gtext("Plex Media Server Pkg Installer"));?>
+				<tr>
+				<td class="celltag"><?=gtext('Install with FreeBSD Pkg Tool');?></td>
+				<td class="celldata">
+					<?php echo html_button('pkginstall',gettext('Install')); ?>
+				</td>
+				</table>
+			<?php endif; ?>
 			<table width="100%" border="0" cellpadding="6" cellspacing="0">
 				<?php html_separator();?>
 				<?php html_titleline(gtext("Uninstall"));?>

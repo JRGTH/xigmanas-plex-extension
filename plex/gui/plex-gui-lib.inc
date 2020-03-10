@@ -31,6 +31,8 @@ $application = "Plex Media Server";
 
 //$rootfolder = dirname($config['rc']['postinit']['cmd'][$i]);
 $pidfile = "/var/run/plex/plex.pid";
+$usrpath = "/usr/local/share";
+$rcdpath = "/usr/local/etc/rc.d";
 $confdir = "/var/etc/plexconf";
 $wwwpath = "/usr/local/www";
 $cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' {$confdir}/conf/plex_config | cut -d'\"' -f2");
@@ -54,8 +56,10 @@ endif;
 $return_val = mwexec("/usr/bin/grep 'PLEX_CHANNEL=\"plexpass\"' {$confdir}/conf/plex_config", true);
 if ($return_val == 0):
 	$prdname = "plexmediaserver-plexpass";
+	$rcdname = "plexmediaserver_plexpass";
 else:
 	$prdname = "plexmediaserver";
+	$rcdname = "plexmediaserver";
 endif;
 
 if ($rootfolder == ""):
@@ -80,5 +84,15 @@ $backup_path = exec("/bin/cat {$configfile} | /usr/bin/grep 'BACKUP_DIR=' | cut 
 $ipaddr = get_ipaddr($config['interfaces']['lan']['if']);
 $url = htmlspecialchars("http://{$ipaddr}:32400/web");
 $ipurl = "<a href='{$url}' target='_blank'>{$url}</a>";
+
+function check_plex_exist() {
+	global $usrpath;
+	global $prdname;
+	$plex_exist = "";
+	if (is_file("{$usrpath}/{$prdname}/Plex_Media_Server")):
+		$plex_exist = "1";
+	endif;
+	return $plex_exist;
+}
 
 ?>

@@ -55,10 +55,10 @@ COMPATPATH4="/usr/local/libdata/ldconfig32"
 PLEXMINVER="1150573"
 USRLOCALPATH="/usr/local/share"
 PLEXPATH="${USRLOCALPATH}/${PRDNAME}"
-PLEXRCD="/usr/local/etc/rc.d/${PRDNAME}"
+RCDPATH="/usr/local/etc/rc.d"
+PLEXRCD="${RCDPATH}/${PRDNAME}"
 SUPPORTPATH="${CWDIR}/plexdata"
 TARFILE=${2}
-RCDPATH="/usr/local/etc/rc.d"
 CONFIG="/cf/conf/config.xml"
 RCCONF="/etc/rc.conf"
 FULLPRDNAME="Plex Media Server"
@@ -88,10 +88,10 @@ runtime_config()
 	fi
 
 	# Create required directories if missing.
-	if [ ! -d ${CWDIR}/conf ]; then
+	if [ ! -d "${CWDIR}/conf" ]; then
 		mkdir -p ${CWDIR}/conf
 	fi
-	if [ ! -d ${CWDIR}/log ]; then
+	if [ ! -d "${CWDIR}/log" ]; then
 		mkdir -p ${CWDIR}/log
 	fi
 
@@ -197,7 +197,7 @@ plexdata_backup()
 			echo "Plexdata backup in progress..."
 			cd ${CWDIR}
 			tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar ${BACKUPDIR}
-			if [ 0 -eq $? ]; then
+			if [ 0 -eq "$?" ]; then
 				MSG="Plexdata backup created successfully."
 				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
 				logger -t ${SCRIPTNAME} ${MSG}
@@ -217,7 +217,7 @@ plexdata_rename()
 {
 	if [ -d "${CWDIR}/plexdata" ]; then
 		mv ${CWDIR}/plexdata ${CWDIR}/plexdata-`date +%Y-%m-%d-%H%M%S`
-		if [ 0 -ne $? ]; then
+		if [ 0 -ne "$?" ]; then
 			MSG="A problem has occurred while attempting to rename previous plexdata directory."
 			echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
 			error_notify ${MSG}
@@ -257,7 +257,7 @@ plexdata_restore()
 					exit 1
 				fi
 			fi
-			if [ 0 -eq $? ]; then
+			if [ 0 -eq "$?" ]; then
 				MSG="Plexdata restored successfully"
 				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
 				logger -t ${SCRIPTNAME} ${MSG}
@@ -317,58 +317,66 @@ plex_initial_download()
 
 pkg_upgrade()
 {
-	# Update FreeBSD.conf file.
-	update_freebsdconf
-
-	# Check if freebsd.org is reachable and prevent for long connection waiting.
-	if ping -c1 ${PINGHOST} > /dev/null 2>&1; then
-		pkg update
-	else
-		echo "Error: ${PINGHOST} is unreachable, Please check your Internet connection."
-		exit 1
+	if [ ! -f "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${CMDFILE}" ]; then
+		echo "${FULLPRDNAME} package it not installed."
 	fi
 
-	# Get current plex version.
-	get_plex_version
+	if pkg info -I ${PRDNAME}${PKG_ARG} >/dev/null 2>&1; then
+		# Update FreeBSD.conf file.
+		update_freebsdconf
 
-	# Check for latest plex packages for upgrade.
-	if ! pkg upgrade -n ${PRDNAME}${PKG_ARG} > /dev/null 2>&1; then
-		if [ -f "${CWDIR}/plexversion" ]; then
-			echo "Removing stale files from previous tarball upgrade..."
-			# Remove previous version file from tarball upgrades.
-			rm -rf ${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/*
-			rm -f ${CWDIR}/plexversion
-			pkg upgrade -y -f ${PRDNAME}${PKG_ARG}
+		# Check if freebsd.org is reachable and prevent for long connection waiting.
+		if ping -c1 ${PINGHOST} > /dev/null 2>&1; then
+			pkg update
 		else
-			pkg upgrade -y ${PRDNAME}${PKG_ARG}
+			echo "Error: ${PINGHOST} is unreachable, Please check your Internet connection."
+			exit 1
+		fi
+
+		# Get current plex version.
+		get_plex_version
+
+		# Check for latest plex packages for upgrade.
+		if ! pkg upgrade -n ${PRDNAME}${PKG_ARG} > /dev/null 2>&1; then
+			if [ -f "${CWDIR}/plexversion" ]; then
+				echo "Removing stale files from previous tarball upgrade..."
+				# Remove previous version file from tarball upgrades.
+				rm -rf ${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/*
+				rm -f ${CWDIR}/plexversion
+				pkg upgrade -y -f ${PRDNAME}${PKG_ARG}
+			else
+				pkg upgrade -y ${PRDNAME}${PKG_ARG}
+			fi
+		else
+			echo "${FULLPRDNAME} package is up to date."
+		fi
+
+		# Get new plex version.
+		if [ -z "${PKG_ARG}" ]; then
+			PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d . | sed 's/_[0-9]//g')
+		else
+			PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f3 | tr -d . | sed 's/_[0-9]//g')
+		fi
+
+		# Logging and plex restart after upgrade.
+		if [ "${PLEXNEWVERSION}" -gt "${PLEXVERSION}" ]; then
+			PLEXNEWVER=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2)
+			echo "${DATE}: ${FULLPRDNAME} upgraded to ${PLEXNEWVER}" >> ${PLEXLOGFILE}
+			echo "${FULLPRDNAME} package upgrade completed!"
+			if ps -acx | grep -q "Plex Media Server"; then
+				service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
+			fi
+		fi
+
+		# Backup latest plex rcd after upgrade if embedded.
+		if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
+			if [ -f "${PLEXRCD}${CMD_ARG}" ]; then
+				cp ${PLEXRCD}${CMD_ARG} ${CWDIR}/system/rc.d/ || \
+				error_notify "Error: A problem has occurred while copying plex rc file."
+			fi
 		fi
 	else
-		echo "${FULLPRDNAME} package is up to date."
-	fi
-
-	# Get new plex version.
-	if [ -z "${PKG_ARG}" ]; then
-		PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d . | sed 's/_[0-9]//g')
-	else
-		PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f3 | tr -d . | sed 's/_[0-9]//g')
-	fi
-
-	# Logging and plex restart after upgrade.
-	if [ "${PLEXNEWVERSION}" -gt "${PLEXVERSION}" ]; then
-		PLEXNEWVER=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2)
-		echo "${DATE}: ${FULLPRDNAME} upgraded to ${PLEXNEWVER}" >> ${PLEXLOGFILE}
-		echo "${FULLPRDNAME} package upgrade completed!"
-		if ps -acx | grep -q "Plex Media Server"; then
-			service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
-		fi
-	fi
-
-	# Backup latest plex rcd after upgrade if embedded.
-	if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
-		if [ -f "${PLEXRCD}${CMD_ARG}" ]; then
-			cp ${PLEXRCD}${CMD_ARG} ${CWDIR}/system/rc.d/ || \
-			error_notify "Error: A problem has occurred while copying plex rc file."
-		fi
+		echo "This setup requires latest ${FULLPRDNAME} tarball for upgrades."
 	fi
 
 	# Check and upgrade extension package.
@@ -391,15 +399,23 @@ extract_tarball()
 	# This will overwrite/override the current Plex installation files and the
 	# pkg utility will still reference for the older package version from pkg info
 	# as expected, so we will create a plexversion file for the extension reference.
+
+	TOPIC="upgrade"
+	if [ ! -f "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${CMDFILE}" ]; then
+		TOPIC="install"
+		echo "Creating directory for ${PRDNAME}${PKG_ARG}."
+		mkdir -p ${USRLOCALPATH}/${PRDNAME}${PKG_ARG}
+	fi
+
 	PLEXTARBALL=$(ls ${CWDIR} | egrep -io 'PlexMediaServer-([1-9]{1,}\.)+[0-9]{1,}.*-freebsd-amd64.tar.bz2')
 	if [ -n "${PLEXTARBALL}" ]; then
 		SETVERSION=$(echo "${PLEXTARBALL}" | cut -d'-' -f2)
 		echo "${PRDNAME}${PKG_ARG}-${SETVERSION}    ${FULLPRDNAME} component" > ${CWDIR}/plexversion
 		EXCLUDE="--exclude=start.sh"
-		echo "${FULLPRDNAME} tarball file found, trying to upgrade from file..."
+		echo "${FULLPRDNAME} tarball file found, trying to ${TOPIC} from file..."
 		echo "Extracting ${PLEXTARBALL}..."
 		tar ${EXCLUDE} -xf ${CWDIR}/${PLEXTARBALL} --strip-components 1 -C ${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/
-		if [ 0 -eq $? ]; then
+		if [ 0 -eq "$?" ]; then
 			MSG="${FULLPRDNAME} tarball extracted successfully."
 			echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
 			logger -t ${SCRIPTNAME} ${MSG}
@@ -407,6 +423,21 @@ extract_tarball()
 			if ps -acx | grep -q "Plex Media Server"; then
 				service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
 			fi
+
+			if [ ! -L "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${CMDFILE}" ]; then
+				ln -fs "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${FULLPRDNAME}" "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${CMDFILE}"
+				if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
+					if [ -f "${CWDIR}/conf/rc.d/${CMDNAME}${CMD_ARG}" ]; then
+						cp ${CWDIR}/conf/rc.d/${CMDNAME}${CMD_ARG} ${CWDIR}/system/rc.d/${CMDNAME}${CMD_ARG}
+						plex_rcd_link
+					fi
+				elif [ "${PRDPLATFORM}" = "x64-full" ]; then
+					if [ -f "${CWDIR}/conf/rc.d/${CMDNAME}${CMD_ARG}" ]; then
+						cp ${CWDIR}/conf/rc.d/${CMDNAME}${CMD_ARG} ${PLEXRCD}${CMD_ARG}
+					fi
+				fi
+			fi
+
 			exit 0
 		else
 			MSG="Error: A problem has occurred during tarball file extraction."
@@ -417,6 +448,11 @@ extract_tarball()
 		echo "${FULLPRDNAME} tarball file not found!"
 		exit 1
 	fi
+}
+
+install_pkg()
+{
+	plex_initial_download
 }
 
 extension_upgrade()
@@ -616,7 +652,7 @@ gui_disable()
 	# Disable gui if -t option specified.
 	if [ -d "${CWDIR}/gui" ]; then
 		rm -f ${WWWPATH}/plex-gui.php
-		rm -r ${WWWPATH}/plex-gui-lib.inc
+		rm -f ${WWWPATH}/plex-gui-lib.inc
 		rm -f ${WWWPATH}/plex-gui-lib.php
 		rm -f ${WWWPATH}/plex-maintain-gui.php
 		rm -Rf ${WWWPATH}/ext/plex-gui
@@ -693,27 +729,31 @@ compat_symlinkdir()
 {
 	# Check and create/relink required symlinks/dirs for compat libs.
 	# This is for backward compatibility only.
-	get_plex_version
-	if [ "${PLEXVERSION}" -lt "${PLEXMINVER}" ]; then
-		if [ ! -d "${COMPATPATH1}" ]; then
-			mkdir -m 0755 -p /usr/local/lib
-			mkdir -p ${CWDIR}/system/compat/lib/compat
-			ln -Ffhs ${CWDIR}/system/compat/lib/compat ${COMPATPATH1}
-		fi
-		if [ ! -d "${COMPATPATH2}" ]; then
-			mkdir -m 0755 -p /usr/local/lib32
-			mkdir -p ${CWDIR}/system/compat/lib32/compat
-			ln -Ffhs ${CWDIR}/system/compat/lib32/compat ${COMPATPATH2}
-		fi
-		if [ ! -d "${COMPATPATH3}" ]; then
-			mkdir -m 0755 -p /usr/local/libdata
-			mkdir -p ${CWDIR}/system/compat/libdata/ldconfig
-			ln -Ffhs ${CWDIR}/system/compat/libdata/ldconfig ${COMPATPATH3}
-		fi
-		if [ ! -d "${COMPATPATH4}" ]; then
-			mkdir -m 0755 -p /usr/local/libdata
-			mkdir -p ${CWDIR}/system/compat/libdata/ldconfig32
-			ln -Ffhs ${CWDIR}/system/compat/libdata/ldconfig32 ${COMPATPATH4}
+	if [ -f "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${CMDFILE}" ]; then
+		if [ ! -f "${CWDIR}/plexversion" ]; then
+			get_plex_version
+			if [ "${PLEXVERSION}" -lt "${PLEXMINVER}" ]; then
+				if [ ! -d "${COMPATPATH1}" ]; then
+					mkdir -m 0755 -p /usr/local/lib
+					mkdir -p ${CWDIR}/system/compat/lib/compat
+					ln -Ffhs ${CWDIR}/system/compat/lib/compat ${COMPATPATH1}
+				fi
+				if [ ! -d "${COMPATPATH2}" ]; then
+					mkdir -m 0755 -p /usr/local/lib32
+					mkdir -p ${CWDIR}/system/compat/lib32/compat
+					ln -Ffhs ${CWDIR}/system/compat/lib32/compat ${COMPATPATH2}
+				fi
+				if [ ! -d "${COMPATPATH3}" ]; then
+					mkdir -m 0755 -p /usr/local/libdata
+					mkdir -p ${CWDIR}/system/compat/libdata/ldconfig
+					ln -Ffhs ${CWDIR}/system/compat/libdata/ldconfig ${COMPATPATH3}
+				fi
+				if [ ! -d "${COMPATPATH4}" ]; then
+					mkdir -m 0755 -p /usr/local/libdata
+					mkdir -p ${CWDIR}/system/compat/libdata/ldconfig32
+					ln -Ffhs ${CWDIR}/system/compat/libdata/ldconfig32 ${COMPATPATH4}
+				fi
+			fi
 		fi
 	fi
 }
@@ -740,7 +780,7 @@ plex_rcd_link()
 {
 	# Restore current plex rcd if embedded.
 	if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
-		if [ -f ${CWDIR}/system/rc.d/${CMDNAME}${CMD_ARG} ]; then
+		if [ -f "${CWDIR}/system/rc.d/${CMDNAME}${CMD_ARG}" ]; then
 			cp ${CWDIR}/system/rc.d/${CMDNAME}${CMD_ARG} ${RCDPATH}/ || error_notify "Error: A problem has occurred while copying rcd file."
 		fi
 	fi
@@ -778,7 +818,7 @@ get_versions()
 plex_log_start()
 {
 	# Log script startup.
-	if [ $? -eq 0 ]; then
+	if [ "$?" -eq 0 ]; then
 		MSG="script has been started successfully!"
 		logger -t ${SCRIPTNAME} ${MSG}
 	else
@@ -799,7 +839,7 @@ plex_start()
 {
 	# Start Plex Media Server.
 	service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart
-	if [ $? -eq 0 ]; then
+	if [ "$?" -eq 0 ]; then
 		exit 0
 	else
 		exit 1
@@ -810,7 +850,7 @@ plex_stop()
 {
 	# Stop Plex Media Server.
 	service ${CMDNAME}${CMD_ARG} onestop 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestop
-	if [ $? -eq 0 ]; then
+	if [ "$?" -eq 0 ]; then
 		exit 0
 	else
 		exit 1
@@ -821,7 +861,7 @@ plex_restart()
 {
 	# Restart Plex Media Server.
 	service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
-	if [ $? -eq 0 ]; then
+	if [ "$?" -eq 0 ]; then
 		exit 0
 	else
 		exit 1
@@ -848,7 +888,6 @@ plex_init()
 	# Function calls.
 	platform_check
 	ext_initial_download
-	plex_initial_download
 	plex_usergroup
 	plex_rc_params
 	product_check
@@ -860,7 +899,7 @@ plex_init()
 runtime_config
 
 # Plexinit common control switches.
-while getopts ":aogtsprxbfevuUh" option; do
+while getopts ":aogtsprxbfeivuUh" option; do
 	case ${option} in
 		[h]) echo "Usage: ${SCRIPTNAME} -[option] | [path|file]";
 		echo "Options:"
@@ -874,7 +913,8 @@ while getopts ":aogtsprxbfevuUh" option; do
 		echo "        -x  Reset Plex Extension Config."
 		echo "        -b  Backup Plexdata Directory."
 		echo "        -f  Restore Plexdata Directory."
-		echo "        -e  Upgrade Plex package from tarball."
+		echo "        -e  Install/Upgrade Plex package from tarball."
+		echo "        -i  Install/Upgrade Plex package from pkg tool"
 		echo "        -v  Display product version."
 		echo "        -h  Display this help message."; exit 0 ;;
 		[a]) OPT_INSTALL="1";; # Alternate installer option.
@@ -888,6 +928,7 @@ while getopts ":aogtsprxbfevuUh" option; do
 		[b]) plexdata_backup;;
 		[f]) plexdata_restore;;
 		[e]) extract_tarball;;
+		[i]) install_pkg;;
 		[v]) get_versions;;
 		[u]) pkg_upgrade; exit 0 ;;
 		[U]) ext_upgrade; exit 0 ;;
@@ -897,7 +938,7 @@ done
 
 # Set the requested plex channel during initial install.
 if [ "${OPT_INSTALL}" = 1 ]; then
-	if [ ! -d ${CWDIR}/conf ]; then
+	if [ ! -d "${CWDIR}/conf" ]; then
 		mkdir -p ${CWDIR}/conf
 	fi
 	if [ ! -f "${CWDIR}${PLEXCONF}" ]; then
