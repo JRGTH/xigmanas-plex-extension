@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.3.015....Add missing plex rcd files.
 4.3.014....Plex package installation method options.
 4.3.013....Ability to upgrade/downgrade from official tarballs from the GUI.
 4.3.012....Fix manual upgrade from tarball file.
