@@ -407,7 +407,7 @@ extract_tarball()
 		mkdir -p ${USRLOCALPATH}/${PRDNAME}${PKG_ARG}
 	fi
 
-	PLEXTARBALL=$(ls ${CWDIR} | egrep -io 'PlexMediaServer-([1-9]{1,}\.)+[0-9]{1,}.*-freebsd-amd64.tar.bz2')
+	PLEXTARBALL=$(ls ${CWDIR} | egrep -io 'PlexMediaServer-([1-9]{1,}\.)+[0-9]{1,}.*-freebsd-amd64.tar.bz2' | tail -n1)
 	if [ -n "${PLEXTARBALL}" ]; then
 		SETVERSION=$(echo "${PLEXTARBALL}" | cut -d'-' -f2)
 		echo "${PRDNAME}${PKG_ARG}-${SETVERSION}    ${FULLPRDNAME} component" > ${CWDIR}/plexversion
