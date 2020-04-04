@@ -44,14 +44,6 @@ $date = strftime('%c');
 $logfile = "{$rootfolder}/log/plex_ext.log";
 $logevent = "{$rootfolder}/log/plex_last_event.log";
 
-// For NAS4Free 10.x versions.
-$return_val = mwexec("/bin/cat /etc/prd.version | cut -d'.' -f1 | /usr/bin/grep '10'", true);
-if ($return_val == 0):
-	if (is_array($config['rc']['postinit'] ) && is_array( $config['rc']['postinit']['cmd'] ) ):
-		for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) { if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) break; ++$i; }
-	endif;
-endif;
-
 // Set the installed Plex package name.
 $return_val = mwexec("/usr/bin/grep 'PLEX_CHANNEL=\"plexpass\"' {$confdir}/conf/plex_config", true);
 if ($return_val == 0):

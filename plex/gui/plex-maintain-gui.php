@@ -161,16 +161,7 @@ if ($_POST):
 		if (is_link("/var/cache/pkg")) mwexec("rm /var/cache/pkg", true);
 		if (is_link("/var/db/pkg")) mwexec("rm /var/db/pkg && mkdir /var/db/pkg", true);
 
-		// Remove postinit cmd in NAS4Free 10.x versions.
-		$return_val = mwexec("/bin/cat /etc/prd.version | cut -d'.' -f1 | /usr/bin/grep '10'", true);
-		if ($return_val == 0):
-			if (is_array($config['rc']['postinit']) && is_array($config['rc']['postinit']['cmd'])):
-				for ($i = 0; $i < count($config['rc']['postinit']['cmd']);) { if (preg_match('/plexinit/', $config['rc']['postinit']['cmd'][$i])) { unset($config['rc']['postinit']['cmd'][$i]); } ++$i; }
-			endif;
-			write_config();
-		endif;
-
-		// Remove postinit cmd in NAS4Free later versions.
+		// Remove postinit cmd in later product versions.
 		if (is_array($config['rc']) && is_array($config['rc']['param'])):
 			$postinit_cmd = "{$rootfolder}/plexinit";
 			$value = $postinit_cmd;

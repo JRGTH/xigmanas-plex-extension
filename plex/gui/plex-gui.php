@@ -2,15 +2,11 @@
 /*
 	plex-gui.php
 
-	WebGUI wrapper for the NAS4Free/XigmaNAS "Plex Media Server*" add-on created by JoseMR.
+	WebGUI wrapper for the XigmaNAS "Plex Media Server*" add-on created by JoseMR.
 	(https://www.xigmanas.com/forums/viewtopic.php?f=71&t=11184)
 	*Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
 
 	Copyright (c) 2016 Andreas Schmidhuber
-	All rights reserved.
-
-	Portions of NAS4Free (http://www.nas4free.org).
-	Copyright (c) 2012-2016 The NAS4Free Project <info@nas4free.org>.
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -35,7 +31,7 @@
 
 	The views and conclusions contained in the software and documentation are those
 	of the authors and should not be interpreted as representing official policies,
-	either expressed or implied, of the NAS4Free Project.
+	either expressed or implied, of the XigmaNAS Project.
 */
 require("auth.inc");
 require("guiconfig.inc");
