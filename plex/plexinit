@@ -338,6 +338,9 @@ pkg_upgrade()
 
 		# Check for latest plex packages for upgrade.
 		if ! pkg upgrade -n ${PRDNAME}${PKG_ARG} > /dev/null 2>&1; then
+			# Stop current plex instance.
+			pre_upgrade_cmd
+
 			if [ -f "${CWDIR}/plexversion" ]; then
 				echo "Removing stale files from previous tarball upgrade..."
 				# Remove previous version file from tarball upgrades.
@@ -358,14 +361,11 @@ pkg_upgrade()
 			PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f3 | tr -d . | sed 's/_[0-9]//g')
 		fi
 
-		# Logging and plex restart after upgrade.
+		# Logging on upgrade success.
 		if [ "${PLEXNEWVERSION}" -gt "${PLEXVERSION}" ]; then
 			PLEXNEWVER=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2)
 			echo "${DATE}: ${FULLPRDNAME} upgraded to ${PLEXNEWVER}" >> ${PLEXLOGFILE}
 			echo "${FULLPRDNAME} package upgrade completed!"
-			if ps -acx | grep -q "Plex Media Server"; then
-				service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
-			fi
 		fi
 
 		# Backup latest plex rcd after upgrade if embedded.
@@ -381,6 +381,24 @@ pkg_upgrade()
 
 	# Check and upgrade extension package.
 	ext_upgrade
+
+	# Check and start plex after upgrade.
+	post_upgrade_cmd
+}
+
+pre_upgrade_cmd()
+{
+	if ps -acx | grep -q "Plex Media Server"; then
+		service ${CMDNAME}${CMD_ARG} onestop 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestop
+	fi
+}
+
+post_upgrade_cmd()
+{
+	plex_usergroup
+	if ! ps -acx | grep -q "Plex Media Server"; then
+		service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart
+	fi
 }
 
 ext_upgrade()
@@ -409,20 +427,23 @@ extract_tarball()
 
 	PLEXTARBALL=$(ls ${CWDIR} | egrep -io 'PlexMediaServer-([1-9]{1,}\.)+[0-9]{1,}.*-freebsd-amd64.tar.bz2' | tail -n1)
 	if [ -n "${PLEXTARBALL}" ]; then
-		SETVERSION=$(echo "${PLEXTARBALL}" | cut -d'-' -f2)
-		echo "${PRDNAME}${PKG_ARG}-${SETVERSION}    ${FULLPRDNAME} component" > ${CWDIR}/plexversion
-		EXCLUDE="--exclude=start.sh"
 		echo "${FULLPRDNAME} tarball file found, trying to ${TOPIC} from file..."
+
+		# Stop current plex instance.
+		pre_upgrade_cmd
+
 		echo "Extracting ${PLEXTARBALL}..."
+		EXCLUDE="--exclude=start.sh"
 		tar ${EXCLUDE} -xf ${CWDIR}/${PLEXTARBALL} --strip-components 1 -C ${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/
 		if [ 0 -eq "$?" ]; then
+			# Set new version on success.
+			SETVERSION=$(echo "${PLEXTARBALL}" | cut -d'-' -f2)
+			echo "${PRDNAME}${PKG_ARG}-${SETVERSION}    ${FULLPRDNAME} component" > ${CWDIR}/plexversion
+
 			MSG="${FULLPRDNAME} tarball extracted successfully."
 			echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
 			logger -t ${SCRIPTNAME} ${MSG}
 			rm  ${CWDIR}/${PLEXTARBALL}
-			if ps -acx | grep -q "Plex Media Server"; then
-				service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
-			fi
 
 			if [ ! -L "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${CMDFILE}" ]; then
 				ln -fs "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${FULLPRDNAME}" "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${CMDFILE}"
@@ -437,7 +458,8 @@ extract_tarball()
 					fi
 				fi
 			fi
-
+			# Check and start plex after upgrade.
+			post_upgrade_cmd
 			exit 0
 		else
 			MSG="Error: A problem has occurred during tarball file extraction."
@@ -679,7 +701,7 @@ plex_usergroup()
 		pw groupadd plex -g 972 >/dev/null 2>&1
 	fi
 	if ! pw usershow plex >/dev/null 2>&1; then
-		pw useradd plex -u 972 -g 972  -c "${FULLPRDNAME}" -d /nonexistent -s /usr/sbin/nologin >/dev/null 2>&1
+		pw useradd plex -u 972 -g 972  -c "Plex Media Server" -d /nonexistent -s /usr/sbin/nologin >/dev/null 2>&1
 	fi
 }
 
