@@ -140,7 +140,12 @@ if ($_POST):
 endif;
 
 // Update some variables.
-$pconfig['enable'] = exec("/bin/cat {$configfile} | /usr/bin/grep 'PLEX_ENABLE=' | cut -d'\"' -f2");
+$plex_enabled = exec("/usr/bin/grep 'PLEX_ENABLE=' $configfile | cut -d'\"' -f2");
+if ($plex_enabled == "YES"):
+	$pconfig['enable'] = true;
+else:
+	$pconfig['enable'] = false;
+endif;
 $backup_path = exec("/bin/cat {$configfile} | /usr/bin/grep 'BACKUP_DIR=' | cut -d'\"' -f2");
 
 function get_version_plex() {
@@ -216,17 +221,17 @@ function enable_change(enable_change) {
 <form action="plex-gui.php" method="post" name="iform" id="iform" onsubmit="spinner()">
 	<table width="100%" border="0" cellpadding="0" cellspacing="0">
 		<tr><td class="tabnavtbl">
-    		<ul id="tabnav">
-    			<li class="tabact"><a href="plex-gui.php"><span><?=gettext("Plex");?></span></a></li>
-    			<li class="tabinact"><a href="plex-maintain-gui.php"><span><?=gettext("Maintenance");?></span></a></li>
-    		</ul>
-    	</td></tr>
+				<ul id="tabnav">
+				<li class="tabact"><a href="plex-gui.php"><span><?=gettext("Plex");?></span></a></li>
+				<li class="tabinact"><a href="plex-maintain-gui.php"><span><?=gettext("Maintenance");?></span></a></li>
+			</ul>
+		</td></tr>
 		<tr><td class="tabcont">
 			<?php if (!empty($errormsg)) print_error_box($errormsg);?>
 			<?php if (!empty($input_errors)) print_input_errors($input_errors);?>
 			<?php if (!empty($savemsg)) print_info_box($savemsg);?>
 			<table width="100%" border="0" cellpadding="6" cellspacing="0">
-				<?php html_titleline_checkbox("enable", gtext("Plex"), $pconfig['enable'] == "YES", gtext("Enable"), "enable_change(false)");?>
+				<?php html_titleline_checkbox("enable", gtext("Plex"), $pconfig['enable'], gtext("Enable"), "enable_change(false)");?>
 				<?php html_text("installation_directory", gtext("Installation directory"), sprintf(gtext("The extension is installed in %s"), $rootfolder));?>
 				<tr>
 					<td class="vncellt"><?=gtext("Plex version");?></td>

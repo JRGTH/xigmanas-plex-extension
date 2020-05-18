@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.3.020....Proper fix for the enable/disable action.
 4.3.019....Don't auto start plex on first tarball upload.
 4.3.018....Stop plex before apply upgrade, verify for plex user/group.
 4.3.017....Update url to reflect latest product name, code cleanup.
