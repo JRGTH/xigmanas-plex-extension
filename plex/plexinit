@@ -53,6 +53,7 @@ COMPATPATH2="/usr/local/lib32/compat"
 COMPATPATH3="/usr/local/libdata/ldconfig"
 COMPATPATH4="/usr/local/libdata/ldconfig32"
 PLEXMINVER="1150573"
+PLEXPIDFILE="/var/run/plex/plex.pid"
 USRLOCALPATH="/usr/local/share"
 PLEXPATH="${USRLOCALPATH}/${PRDNAME}"
 RCDPATH="/usr/local/etc/rc.d"
@@ -93,6 +94,11 @@ runtime_config()
 	fi
 	if [ ! -d "${CWDIR}/log" ]; then
 		mkdir -p ${CWDIR}/log
+	fi
+
+	# Create extension config file.
+	if [ ! -f "${CWDIR}${PLEXCONF}" ]; then
+		touch ${CWDIR}${PLEXCONF}
 	fi
 
 	# Set requested plex channel variables.
@@ -877,6 +883,7 @@ plex_stop()
 	# Stop Plex Media Server.
 	service ${CMDNAME}${CMD_ARG} onestop 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestop
 	if [ "$?" -eq 0 ]; then
+		plex_rmpid
 		exit 0
 	else
 		exit 1
@@ -891,6 +898,16 @@ plex_restart()
 		exit 0
 	else
 		exit 1
+	fi
+}
+
+plex_rmpid()
+{
+	# Remove pid file if stop success.
+	if ! ps -acx | grep -q "Plex Media Server"; then
+		if [ -f "${PLEXPIDFILE}" ]; then
+			rm -f ${PLEXPIDFILE}
+		fi
 	fi
 }
 

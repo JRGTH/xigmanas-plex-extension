@@ -118,7 +118,7 @@ if ($_POST):
 			exec("/usr/sbin/sysrc -f {$configfile} PLEX_ENABLE=YES");
 			$running = mwexec("/bin/ps -acx | /usr/bin/grep -q '{$application}'", true);
 			if ($running == 1):
-				mwexec("{$rootfolder}/plexinit -s", true);
+				exec("{$rootfolder}/plexinit -s");
 				$savemsg .= gtext("Extension settings saved and enabled.");
 				exec("echo '{$date}: Extension settings saved and enabled' >> {$logfile}");
 			endif;
@@ -126,7 +126,7 @@ if ($_POST):
 			exec("/usr/sbin/sysrc -f {$configfile} PLEX_ENABLE=NO");
 			$running = mwexec("/bin/ps -acx | /usr/bin/grep -q '{$application}'", true);
 			if ($running == 0):
-				$return_val = mwexec("{$rootfolder}/plexinit -p && rm -f {$pidfile}", true);
+				$return_val = mwexec("{$rootfolder}/plexinit -p", true);
 				if ($return_val == 0):
 					$savemsg .= gtext("Plex Media Server stopped successfully.");
 					exec("echo '{$date}: Extension settings saved and disabled' >> {$logfile}");
