@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.3.022....Link the extension gui files instead.
 4.3.021....Remove pid file if plex stop successful.
 4.3.020....Proper fix for the enable/disable action.
 4.3.019....Don't auto start plex on first tarball upload.

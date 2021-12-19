@@ -660,7 +660,9 @@ gui_start()
 			mkdir -p ${PLEXCONFLINK}
 			ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/conf
 			# Copy the gui files.
-			cp -R ${CWDIR}/gui/* ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
+			ln -fhs ${CWDIR}/gui/ext/plex-gui ${WWWPATH}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
+			ln -fhs ${CWDIR}/gui/plex-gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
+			ln -fhs ${CWDIR}/gui/plex-maintain-gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
 		fi
 	fi
 }
@@ -672,7 +674,9 @@ gui_enable()
 		mkdir -p ${PLEXCONFLINK}
 		ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/conf
 		sysrc -f ${CWDIR}${PLEXCONF} GUI_ENABLE=YES >/dev/null 2>&1
-		cp -R ${CWDIR}/gui/* ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
+		ln -fhs ${CWDIR}/gui/ext/plex-gui ${WWWPATH}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
+		ln -fhs ${CWDIR}/gui/plex-gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
+		ln -fhs ${CWDIR}/gui/plex-maintain-gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
 		exit 0
 	else
 		error_notify "Error: Extension gui files not found."
