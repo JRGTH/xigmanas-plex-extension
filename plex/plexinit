@@ -550,13 +550,26 @@ ext_initial_download()
 	fi
 }
 
+gui_obsolete_files()
+{
+	# Plex Extension no longer copy the files into www, we will symlink the files instead.
+	OBSOLETE_FILES="ext/plex-gui plex-gui.php plex-gui-lib.inc plex-maintain-gui.php"
+	for file in ${OBSOLETE_FILES}; do
+		if [ -d "${WWWPATH}/${file}" ] || [ -f "${WWWPATH}/${file}" ]; then
+			rm -rf ${WWWPATH}/${file}
+		fi
+	done
+}
+
 update_guifiles()
 {
 	# Check if gui enabled then copy/overwrite new files to www.
 	GUI_STATUS=$(sysrc -f ${CWDIR}${PLEXCONF} -qn GUI_ENABLE)
 	if [ "${GUI_STATUS}" = "YES" ]; then
-		cp -R ${CWDIR}/gui/* ${WWWPATH}/ || \
-		error_notify "Error: A problem has occurred while copying extension gui files."
+		gui_obsolete_files
+		ln -fhs ${CWDIR}/gui/ext/plex-gui ${WWWPATH}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
+		ln -fhs ${CWDIR}/gui/plex-gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
+		ln -fhs ${CWDIR}/gui/plex-maintain-gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
 	fi
 }
 
@@ -660,6 +673,7 @@ gui_start()
 			mkdir -p ${PLEXCONFLINK}
 			ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/conf
 			# Copy the gui files.
+			gui_obsolete_files
 			ln -fhs ${CWDIR}/gui/ext/plex-gui ${WWWPATH}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
 			ln -fhs ${CWDIR}/gui/plex-gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
 			ln -fhs ${CWDIR}/gui/plex-maintain-gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."

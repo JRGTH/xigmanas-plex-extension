@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.3.023....Remove gui files if any, we use symlinks now.
 4.3.022....Link the extension gui files instead.
 4.3.021....Remove pid file if plex stop successful.
 4.3.020....Proper fix for the enable/disable action.
