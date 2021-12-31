@@ -405,8 +405,10 @@ post_upgrade_cmd()
 {
 	plex_usergroup
 	if ! ps -acx | grep -q "Plex Media Server"; then
-		if [ "${PENDING_START}" -eq 1 ]; then
-			service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart
+		if [ -n "${PENDING_START}" ]; then
+			if [ "${PENDING_START}" -eq 1 ]; then
+				service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart
+			fi
 		fi
 	fi
 }
