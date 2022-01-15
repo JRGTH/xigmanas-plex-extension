@@ -673,6 +673,12 @@ gui_start()
 				sysrc -f ${CWDIR}${PLEXCONF} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 			fi
 			mkdir -p ${PLEXCONFLINK}
+
+			# Ensure this directory exist
+			if [ ! -d "${WWWPATH}/ext" ]; then
+				mkdir ${WWWPATH}/ext
+			fi
+
 			ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/conf
 			# Copy the gui files.
 			gui_obsolete_files
@@ -688,6 +694,12 @@ gui_enable()
 	# Relink conf and copy the gui files.
 	if [ -d "${CWDIR}/gui" ]; then
 		mkdir -p ${PLEXCONFLINK}
+
+		# Ensure this directory exist
+		if [ ! -d "${WWWPATH}/ext" ]; then
+			mkdir ${WWWPATH}/ext
+		fi
+
 		ln -Ffhs ${CWDIR}/conf ${PLEXCONFLINK}/conf
 		sysrc -f ${CWDIR}${PLEXCONF} GUI_ENABLE=YES >/dev/null 2>&1
 		ln -fhs ${CWDIR}/gui/ext/plex-gui ${WWWPATH}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
