@@ -569,6 +569,12 @@ update_guifiles()
 	GUI_STATUS=$(sysrc -f ${CWDIR}${PLEXCONF} -qn GUI_ENABLE)
 	if [ "${GUI_STATUS}" = "YES" ]; then
 		gui_obsolete_files
+
+		# Ensure this directory exist
+		if [ ! -d "${WWWPATH}/ext" ]; then
+			mkdir ${WWWPATH}/ext
+		fi
+
 		ln -fhs ${CWDIR}/gui/ext/plex-gui ${WWWPATH}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
 		ln -fhs ${CWDIR}/gui/plex-gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
 		ln -fhs ${CWDIR}/gui/plex-maintain-gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while copying extension gui files."
