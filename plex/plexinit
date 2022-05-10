@@ -1,6 +1,6 @@
 #!/bin/sh
 # plexinit
-# Plex Media Server Extension for XigmaNAS 10.3 and later version.
+# Plex Media Server Extension for XigmaNAS 11.0 and later version.
 # (https://www.xigmanas.com/forums/viewtopic.php?f=71&t=11184)
 # License: BSD2CLAUSE (BSD 2-clause Simplified License).
 # *Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
@@ -30,7 +30,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Set environment.
-PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+PATH=${PATH}:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 
 # Set global variables.
 SCRIPTNAME=$(basename $0)
@@ -907,6 +907,11 @@ plex_log_start()
 
 plex_start()
 {
+	# Workaround to check and restore plex user/group if missing.
+	# Seems that some built-in services resets/rebuild the passwd file
+	# without respecting the third-party generated entries through the shell.
+	plex_usergroup
+
 	# Start Plex Media Server.
 	service ${CMDNAME}${CMD_ARG} onestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestart
 	if [ "$?" -eq 0 ]; then
@@ -918,6 +923,11 @@ plex_start()
 
 plex_stop()
 {
+	# Workaround to check and restore plex user/group if missing.
+	# Seems that some built-in services resets/rebuild the passwd file
+	# without respecting the third-party generated entries through the shell.
+	plex_usergroup
+
 	# Stop Plex Media Server.
 	service ${CMDNAME}${CMD_ARG} onestop 2> /dev/null || ${PLEXRCD}${CMD_ARG} onestop
 	if [ "$?" -eq 0 ]; then
@@ -930,6 +940,11 @@ plex_stop()
 
 plex_restart()
 {
+	# Workaround to check and restore plex user/group if missing.
+	# Seems that some built-in services resets/rebuild the passwd file
+	# without respecting the third-party generated entries through the shell.
+	plex_usergroup
+
 	# Restart Plex Media Server.
 	service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
 	if [ "$?" -eq 0 ]; then

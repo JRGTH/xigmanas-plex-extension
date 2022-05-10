@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.3.027....Workaround to check/restore plex user/group if missing.
 4.3.026....Check if www/ext directory exist on upgrades.
 4.3.025....Ensure the www/ext directory exist.
 4.3.024....Minor changes/updates. 
