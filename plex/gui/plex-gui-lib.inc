@@ -40,7 +40,8 @@ $rootfolder = $cwdir;
 $configfile = "{$rootfolder}/conf/plex_config";
 $versionfile = "{$rootfolder}/version";
 $tarballversion = "{$rootfolder}/plexversion";
-$date = strftime('%c');
+//$date = strftime('%c');                // Previous PHP versions, deprecated as of PHP 8.1.
+$date = date('D M d h:i:s Y', time());   // Equivalent date replacement for the previous strftime function.
 $logfile = "{$rootfolder}/log/plex_ext.log";
 $logevent = "{$rootfolder}/log/plex_last_event.log";
 
