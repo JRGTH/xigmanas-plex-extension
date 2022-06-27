@@ -9,4 +9,4 @@ XigmaNAS Plex Extension
 
  Andreas Schmidhuber (crestAT) GUI complements, J.M. Rivera (JRGTH) core script.
 
-Additional information and description in the: <a href="https://www.xigmanas.com/forums/viewforum.php?f=71">XigmaNAS Extensions Forum</a>
+Additional information and description in the: <a href="https://www.xigmanas.com/forums/viewforum.php?f=32">XigmaNAS Extensions Forum</a>
