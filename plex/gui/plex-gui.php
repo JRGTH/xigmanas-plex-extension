@@ -162,20 +162,20 @@ function get_version_plex() {
 function get_version_ext() {
 	global $versionfile;
 	exec("/bin/cat {$versionfile}", $result);
-	return ($result[0]);
+	return ($result[0] ?? '');
 }
 
 function get_process_info() {
 	global $pidfile;
 	if (exec("/bin/ps acx | /usr/bin/grep -f {$pidfile}")) { $state = '<a style=" background-color: #00ff00; ">&nbsp;&nbsp;<b>'.gtext("running").'</b>&nbsp;&nbsp;</a>'; }
 	else { $state = '<a style=" background-color: #ff0000; ">&nbsp;&nbsp;<b>'.gtext("stopped").'</b>&nbsp;&nbsp;</a>'; }
-	return ($state);
+	return ($state ?? '');
 }
 
 function get_process_pid() {
 	global $pidfile;
 	exec("/bin/cat {$pidfile}", $state); 
-	return ($state[0]);
+	return ($state[0] ?? '');
 }
 
 if (is_ajax()) {
