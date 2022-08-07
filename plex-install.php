@@ -42,7 +42,7 @@ require("guiconfig.inc");
 $application = "Plex Media Server";
 $pgtitle = array(gtext("Extensions"), gtext($application), gtext("Installation Directory"));
 if (!isset($config['plex']) || !is_array($config['plex'])) $config['plex'] = array();
-$date = strftime('%c');
+$date = date('D M d h:i:s Y', time());
 $logfile = "plex_ext.log";
 $branch = "master";
 $git_url = "https://raw.githubusercontent.com/JRGTH/xigmanas-plex-extension/{$branch}/plex/plexinit";
