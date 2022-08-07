@@ -42,7 +42,8 @@ require("guiconfig.inc");
 $application = "Plex Media Server";
 $pgtitle = array(gtext("Extensions"), gtext($application), gtext("Installation Directory"));
 if (!isset($config['plex']) || !is_array($config['plex'])) $config['plex'] = array();
-$date = strftime('%c');
+//$date = strftime('%c');                // Previous PHP versions, deprecated as of PHP 8.1.
+$date = date('D M d h:i:s Y', time());   // Equivalent date replacement for the previous strftime function.
 $logfile = "plex_ext.log";
 $branch = "master";
 $git_url = "https://raw.githubusercontent.com/JRGTH/xigmanas-plex-extension/{$branch}/plex/plexinit";
@@ -72,7 +73,7 @@ function change_perms($dir) {
 				$path_elements = $path_elements - 1;
 				$directory = $directory."/$path_check[$path_elements]";	// Add last level.
 				exec("chmod 775 {$directory}");							// Set permissions to 775.
-				exec("chown {$_POST['who']} {$directory}*");
+				//exec("chown {$_POST['who']} {$directory}*");          // This is not yet functional.
 			}
 			else {
 				$input_errors[] = sprintf(gtext("%s needs at least read & execute permissions at the mount point for directory %s! Set the Read and Execute bits for Others (Access Restrictions | Mode) for the mount point %s (in <a href='disks_mount.php'>Disks | Mount Point | Management</a> or <a href='disks_zfs_dataset.php'>Disks | ZFS | Datasets</a>) and hit Save in order to take them effect."), $application, $path, "/{$path_check[1]}/{$path_check[2]}");

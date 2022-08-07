@@ -107,7 +107,7 @@ if ($_POST):
 
 	if (isset($_POST['save']) && $_POST['save']):
 		// Ensure to have NO whitespace & trailing slash.
-		$backup_path = rtrim(trim($_POST['backup_path']),'/');
+		$backup_path = rtrim(trim($_POST['backup_path'] ?? ''),'/');
 		if ("{$backup_path}" == ""):
 			$backup_path = "{$rootfolder}/backup";
 		else:
