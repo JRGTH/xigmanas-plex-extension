@@ -71,8 +71,8 @@ function change_perms($dir) {
 				}
 				$path_elements = $path_elements - 1;
 				$directory = $directory."/$path_check[$path_elements]";	// Add last level.
-				exec("chmod 775 {$directory}");							// Set permissions to 775.
-				exec("chown {$_POST['who']} {$directory}*");
+				exec("chmod 775 {$directory}");				// Set permissions to 775.
+				//exec("chown {$_POST['who']} {$directory}*");          // This is not yet functional.
 			}
 			else {
 				$input_errors[] = sprintf(gtext("%s needs at least read & execute permissions at the mount point for directory %s! Set the Read and Execute bits for Others (Access Restrictions | Mode) for the mount point %s (in <a href='disks_mount.php'>Disks | Mount Point | Management</a> or <a href='disks_zfs_dataset.php'>Disks | ZFS | Datasets</a>) and hit Save in order to take them effect."), $application, $path, "/{$path_check[1]}/{$path_check[2]}");
