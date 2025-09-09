@@ -1,5 +1,5 @@
-XigmaNAS Plex Extension
-=======================
+XigmaNAS® Plex Extension
+========================
 
 **Description**
 
