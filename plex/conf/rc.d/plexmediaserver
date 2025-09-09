@@ -1,8 +1,6 @@
 #!/bin/sh
 # Created by: KalleDK <plexmaintainer@k-moeller.dk>
-#
-# $FreeBSD: head/multimedia/plexmediaserver/files/plexmediaserver.in 496825 2019-03-25 14:44:54Z feld $
-#
+
 # PROVIDE: plexmediaserver
 # REQUIRE: LOGIN
 # KEYWORD: shutdown
