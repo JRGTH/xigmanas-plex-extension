@@ -1,5 +1,6 @@
 #!/bin/sh
-# Created by: KalleDK <plexmaintainer@k-moeller.dk>
+# First Created by: KalleDK <plexmaintainer@k-moeller.dk>
+# Modified for XigmaNAS® (https://www.xigmanas.com)
 
 # PROVIDE: plexmediaserver
 # REQUIRE: LOGIN
@@ -38,12 +39,12 @@ stop_postcmd=plex_stop_postcmd
 
 plex_precmd()
 {
-	#Set identification variables for FreeNAS; with fallback to FreeBSD
-	if [ -f "/etc/version" ]; then
-	  export PLEX_MEDIA_SERVER_INFO_VENDOR="$(cat /etc/version|cut -d- -f1)"
+	#Set identification variables for XigmaNAS; with fallback to FreeBSD
+	if [ -f "/etc/prd.name" ]; then
+	  export PLEX_MEDIA_SERVER_INFO_VENDOR="$(cat /etc/prd.name|cut -d- -f1)"
 	  export PLEX_MEDIA_SERVER_INFO_DEVICE=NAS
 	  export PLEX_MEDIA_SERVER_INFO_MODEL="$(uname -m)"
-	  export PLEX_MEDIA_SERVER_INFO_PLATFORM_VERSION="$(cat /etc/version|cut -d- -f2-)"
+	  export PLEX_MEDIA_SERVER_INFO_PLATFORM_VERSION="$(cat /etc/prd.name|cut -d- -f2-)"
 	else
 	  export PLEX_MEDIA_SERVER_INFO_VENDOR=FreeBSD
 	  export PLEX_MEDIA_SERVER_INFO_DEVICE=PC
