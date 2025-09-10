@@ -3,6 +3,7 @@
 ===============================
 Version    Description
 
+4.3.031....Code changes to support XigmaNAS and cleanup.
 4.3.030....Code changes for latest PHP compatibility.
 4.3.029....Merge plex-gui patch from Zoon01.
 4.3.028....Fix to replace deprecated PHP date function.
