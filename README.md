@@ -18,18 +18,12 @@ xigmanas: ~# plexinit -h
 Usage: plexinit -[option] | [path|file]
 Options:
 
--s  Start Plex Media Server.
-
--p  Stop Plex Media Server.
-
--r  Restart Plex Media Server.
-
--u  Upgrade Plex/Extension packages.
-
--U  Upgrade Extension packages only.
-
--g  Enables the addon GUI.
-
+        -s  Start Plex Media Server.
+        -p  Stop Plex Media Server.
+        -r  Restart Plex Media Server.
+        -u  Upgrade Plex/Extension packages.
+        -U  Upgrade Extension packages only.
+        -g  Enables the addon GUI.
         -t  Disable the addon GUI.
         -x  Reset Plex Extension Config.
         -b  Backup Plexdata Directory.
