@@ -10,7 +10,7 @@ Additional information can be found in the: <a href="https://www.xigmanas.com/fo
 
 Manual Installation:
 
-fetch https://raw.githubusercontent.com/JRGTH/xigmanas-plex-extension/master/plex-install.php && mkdir -p ext/plex-install && echo '<a href="plex-install.php">Plex Extension Installer</a>' > ext/plex-install/menu.inc && echo -e "\n=> Done!"
+# fetch https://raw.githubusercontent.com/JRGTH/xigmanas-plex-extension/master/plex-install.php && mkdir -p ext/plex-install && echo '<a href="plex-install.php">Plex Extension Installer</a>' > ext/plex-install/menu.inc && echo -e "\n=> Done!"
 
 Common management shell options:
 
