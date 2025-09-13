@@ -1,6 +1,6 @@
-Manual Installation:
+﻿Manual Installation:
 
-# fetch https://raw.githubusercontent.com/JRGTH/xigmanas-plex-extension/master/plex-install.php && mkdir -p ext/plex-install && echo '<a href="plex-install.php">Plex Extension Installer</a>' > ext/plex-install/menu.inc && echo -e "\n=> Done!"
+# fetch https://raw.githubusercontent.com/zoon01/xigmanas-plex-extension/master/plex-install.php && mkdir -p ext/plex-install && echo '<a href="plex-install.php">Plex Extension Installer</a>' > ext/plex-install/menu.inc && echo -e "\n=> Done!"
 
 Common management shell options:
 

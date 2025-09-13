@@ -1,11 +1,18 @@
-<?php
+﻿<?php
 /*
-	plex-gui-lib.inc
+    plex-gui-lib.inc
 
-	Copyright (c) 2018 - 2019 Jose Rivera (JoseMR)
-    All rights reserved.
+    Part of XigmaNAS® Plex Media Server Extension.
+    See Credits for their copyright holders.
+    All Rights Reserved.
 
-	Redistribution and use in source and binary forms, with or without
+    XigmaNAS® Copyright © 2018-2025 XigmaNAS® (info@xigmanas.com).
+    XigmaNAS® is a registered trademark of Michael Zoon. (zoon01@xigmanas.com).
+    All Rights Reserved.
+    
+    # Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
+
+    Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
 
     1. Redistributions of source code must retain the above copyright notice, this

@@ -1,7 +1,6 @@
 ﻿#!/bin/sh
-# First Created by: KalleDK <plexmaintainer@k-moeller.dk>
-# Modified for XigmaNAS (https://www.xigmanas.com)
-
+# Part of XigmaNAS® Plex Media Server Extension.
+# Modified for XigmaNAS® (https://www.xigmanas.com)
 # PROVIDE: plexmediaserver
 # REQUIRE: LOGIN
 # KEYWORD: shutdown
