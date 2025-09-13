@@ -45,7 +45,7 @@ if (!isset($config['plex']) || !is_array($config['plex'])) $config['plex'] = arr
 $date = date('D M d h:i:s Y', time());
 $logfile = "plex_ext.log";
 $branch = "master";
-$git_url = "https://raw.githubusercontent.com/JRGTH/xigmanas-plex-extension/{$branch}/plex/plexinit";
+$git_url = "https://raw.githubusercontent.com/zoon01/xigmanas-plex-extension/{$branch}/plex/plexinit";
 
 /*
 Check if the directory exists, the mountpoint has at least o=rx permissions and
