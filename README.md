@@ -1,12 +1,14 @@
-XigmaNAS® Plex Extension
-========================
+XigmaNAS Plex Extension
+=======================
 
 **Description**
 
- This is the XigmaNAS Plex Extension which seamlessly integrates the popular Plex Media Server.
+This is the XigmaNAS(r) Plex Extension which seamlessly integrates the popular Plex Media Server.
 
 **Credits**
 
- Andreas Schmidhuber (crestAT) GUI complements, J.M. Rivera (JRGTH) core script.
+J.M. Rivera (JRGTH).
+Andreas Schmidhuber (crestAT).
 
-Additional information and description in the: <a href="https://www.xigmanas.com/forums/viewforum.php?f=32">XigmaNAS Extensions Forum</a>
+Additional information and description in the: <a href="https://www.xigmanas.com/forums/viewtopic.php?t=56">XigmaNAS Extensions Forum</a>
+

@@ -1,15 +1,9 @@
 <?php
 /*
-	plex-maintain-gui.php
-
-	Copyright (c) 2018 - 2019 Jose Rivera (JoseMR)
+    Copyright (c) 2018 - 2025 José Rivera (JoseMR)
     All rights reserved.
 
-	Portions of XigmaNAS (https://www.xigmanas.com).
-	Copyright (c) 2018 XigmaNAS <info@xigmanas.com>.
-	All rights reserved.
-
-	Redistribution and use in source and binary forms, with or without
+    Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
 
     1. Redistributions of source code must retain the above copyright notice, this
@@ -28,7 +22,16 @@
     ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    plex-maintain-gui.php
+
+    Portions of XigmaNAS(r) (https://www.xigmanas.com).
+    Copyright (c) 2018 XigmaNAS(r) <info@xigmanas.com>.
+    All rights reserved.
+
+    Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
 */
+
 require("auth.inc");
 require("guiconfig.inc");
 require_once("plex-gui-lib.inc");
@@ -155,9 +158,9 @@ if ($_POST):
 		else:
 			$uninstall_plexdata = "";
 		endif;
-		$uninstall_cmd = "rm -rf {$rootfolder}/backup {$rootfolder}/conf {$rootfolder}/gui {$rootfolder}/locale-plex {$rootfolder}/log {$uninstall_plexdata} {$rootfolder}/system {$rootfolder}/plexinit {$rootfolder}/plexversion {$rootfolder}/README {$rootfolder}/release_notes {$rootfolder}/version";
+		$uninstall_cmd = "rm -rf {$rootfolder}/backup {$rootfolder}/conf {$rootfolder}/gui {$rootfolder}/locale-plex {$rootfolder}/log {$uninstall_plexdata} {$rootfolder}/system {$rootfolder}/plexinit {$rootfolder}/plexversion {$rootfolder}/README {$rootfolder}/release_notes {$rootfolder}/version {$rootfolder}/CHANGELOG {$usrpath}/licenses/{$prdname}-* {$rcdpath}/{$prdname}";
 		mwexec($uninstall_cmd, true);
-		if (is_link("/usr/local/share/{$prdname}")) mwexec("rm /usr/local/share/{$prdname}", true);
+		if (is_link("{$usrpath}/{$prdname}")) mwexec("rm {$usrpath}/{$prdname}", true);
 		if (is_link("/var/cache/pkg")) mwexec("rm /var/cache/pkg", true);
 		if (is_link("/var/db/pkg")) mwexec("rm /var/db/pkg && mkdir /var/db/pkg", true);
 
@@ -273,7 +276,7 @@ bindtextdomain("xigmanas", $textdomain_plex);
 			<table width="100%" border="0" cellpadding="6" cellspacing="0">
 				<?php html_separator();?>
 				<?php html_titleline(gtext("Uninstall"));?>
-				<?php html_checkbox("plexdata", gtext("Plexdata"), false, "<font color='red'>".gtext("Activate to delete user data (metadata and configuration) as well during the uninstall process.")."</font>", sprintf(gtext("If not activated the directory %s remains intact on the server."), "{$rootfolder}/plexdata"), false);?>
+				<?php html_checkbox("plexdata", gtext("Plexdata"), false, "<font color='red'>".gtext("Check this box to agree to delete user data (plex metadata and configuration) as well during the uninstall process.")."</font>", sprintf(gtext("If not checked the directory %s remains intact on the server."), "{$rootfolder}/plexdata"), false);?>
 				<?php html_separator();?>
 			</table>
 			<div id="submit1">

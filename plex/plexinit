@@ -1,13 +1,6 @@
 #!/bin/sh
-# plexinit
-# Plex Media Server Extension for XigmaNAS 11.0 and later version.
-# (https://www.xigmanas.com/forums/viewtopic.php?f=71&t=11184)
-# License: BSD2CLAUSE (BSD 2-clause Simplified License).
-# *Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
-# Debug script.
-#set -x
 
-# Copyright (c) 2018 José Rivera (JoseMR)
+# Copyright (c) 2018-2025 José Rivera (JoseMR)
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,6 +22,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# plexinit
+# Plex Media Server Extension for XigmaNAS(r) created by José Rivera (JoseMR).
+# Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
+# Debug script.
+#set -x
+
 # Set environment.
 PATH=${PATH}:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 
@@ -39,7 +38,6 @@ PLATFORM=$(uname -m)
 PRODUCT=$(uname -i)
 PRDVERSION=$(uname -r | cut -d '-' -f1 | tr -d '.')
 PRDPLATFORM=$(cat /etc/platform)
-DATE=$(date +"%a %b %d %T %Y")
 APPNAME="Plex Extension"
 PRDNAME="plexmediaserver"
 PKGCONF="/etc/pkg/FreeBSD.conf"
@@ -48,16 +46,12 @@ PKGCACHE="/var/cache/pkg"
 PKGDB="/var/db/pkg"
 PLEXCONF="/conf/plex_config"
 PLEXCONFLINK="/var/etc/plexconf"
-COMPATPATH1="/usr/local/lib/compat"
-COMPATPATH2="/usr/local/lib32/compat"
-COMPATPATH3="/usr/local/libdata/ldconfig"
-COMPATPATH4="/usr/local/libdata/ldconfig32"
-PLEXMINVER="1150573"
 PLEXPIDFILE="/var/run/plex/plex.pid"
 USRLOCALPATH="/usr/local/share"
 PLEXPATH="${USRLOCALPATH}/${PRDNAME}"
 RCDPATH="/usr/local/etc/rc.d"
 PLEXRCD="${RCDPATH}/${PRDNAME}"
+LICPATH="${USRLOCALPATH}/licenses"
 SUPPORTPATH="${CWDIR}/plexdata"
 TARFILE=${2}
 CONFIG="/cf/conf/config.xml"
@@ -77,6 +71,16 @@ error_notify()
 	MSG="$*"
 	logger -t "${SCRIPTNAME}" "${MSG}"
 	echo -e "${MSG}" >&2; exit 1
+}
+
+tar_current_date()
+{
+	DATE=$(date +%Y-%m-%d-%H%M%S)
+}
+
+log_current_date()
+{
+	DATELOG=$(date +"%a %b %d %T %Y")
 }
 
 runtime_config()
@@ -120,23 +124,23 @@ plex_detect()
 {
 	# Set the proper channel variables based on the installed plex package and write default configuration.
 	# We have to use this method since plexmediaserver --version or equivalent command is broken on FreeBSD.
-	STANDARD=1
-	PLEXPASS=1
+	STANDARD=0
+	PLEXPASS=0
 	if [ -f "${USRLOCALPATH}/${PRDNAME}/${CMDFILE}" ]; then
-		STANDARD=0
+		STANDARD=1
 	fi
 	if [ -f "${USRLOCALPATH}/${PRDNAME}-plexpass/${CMDFILE}" ]; then
-		PLEXPASS=0
+		PLEXPASS=1
 	fi
 
 	# Stop script execution if multiple plex versions detected.
-	if [ "${STANDARD}" -eq 0 ] && [ "${PLEXPASS}" -eq 0 ]; then
+	if [ "${STANDARD}" -eq 1 ] && [ "${PLEXPASS}" -eq 1 ]; then
 		error_notify "Error: Multiple ${FULLPRDNAME} versions found."
-	elif [ "${STANDARD}" -eq 0 ]; then
+	elif [ "${STANDARD}" -eq 1 ]; then
 		PLEXCH="standard"
 		default_config
 		standard_channel
-	elif [ "${PLEXPASS}" -eq 0 ]; then
+	elif [ "${PLEXPASS}" -eq 1 ]; then
 		PLEXCH="plexpass"
 		default_config
 		plexpass_channel
@@ -158,6 +162,7 @@ plexpass_channel()
 get_plex_version()
 {
 	# Get current plex version.
+	PLEXVERSION=
 	if [ -z "${PKG_ARG}" ]; then
 		PLEXVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d . | sed 's/_[0-9]//g')
 	else
@@ -178,7 +183,8 @@ config_reset()
 {
 	if [ -f "${CWDIR}${PLEXCONF}" ]; then
 		echo "Removing stale extension config and gui files..."
-		FILELIST="${CWDIR}/conf ${WWWPATH}/plex-gui.php ${WWWPATH}/plex-gui-lib.inc ${WWWPATH}/plex-gui-lib.php ${WWWPATH}/plex-maintain-gui.php ${WWWPATH}/ext/plex-gui ${USRLOCALPATH}/locale-plex ${PLEXCONFLINK} ${CWDIR}/version ${CWDIR}/plexversion"
+		FILELIST="${CWDIR}/conf ${WWWPATH}/plex-gui.php ${WWWPATH}/plex-gui-lib.inc ${WWWPATH}/plex-gui-lib.php ${WWWPATH}/plex-maintain-gui.php \
+		${WWWPATH}/ext/plex-gui ${USRLOCALPATH}/locale-plex ${PLEXCONFLINK} ${CWDIR}/version ${CWDIR}/plexversion"
 		for file in ${FILELIST}; do
 			if [ -f "${file}" ] || [ -d "${file}" ]; then
 				rm -rf ${file}
@@ -202,15 +208,17 @@ plexdata_backup()
 		if [ -d "${BACKUPDIR}" ]; then
 			echo "Plexdata backup in progress..."
 			cd ${CWDIR}
-			tar -cf plexdata-`date +%Y-%m-%d-%H%M%S`.tar plexdata && mv plexdata-*.tar ${BACKUPDIR}
+			tar_current_date
+			log_current_date
+			tar -cf plexdata-${DATE}.tar plexdata && mv plexdata-*.tar ${BACKUPDIR}
 			if [ 0 -eq "$?" ]; then
 				MSG="Plexdata backup created successfully."
-				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+				echo "${DATELOG}: ${MSG}" | tee -a ${PLEXLOGFILE}
 				logger -t ${SCRIPTNAME} ${MSG}
 				exit 0
 			else
 				MSG="A problem has occurred during the backup process."
-				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+				echo "${DATELOG}: ${MSG}" | tee -a ${PLEXLOGFILE}
 				error_notify ${MSG}
 			fi
 		else
@@ -222,10 +230,12 @@ plexdata_backup()
 plexdata_rename()
 {
 	if [ -d "${CWDIR}/plexdata" ]; then
-		mv ${CWDIR}/plexdata ${CWDIR}/plexdata-`date +%Y-%m-%d-%H%M%S`
+		tar_current_date
+		mv ${CWDIR}/plexdata ${CWDIR}/plexdata-${DATE}
 		if [ 0 -ne "$?" ]; then
+			log_current_date
 			MSG="A problem has occurred while attempting to rename previous plexdata directory."
-			echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+			echo "${DATELOG}: ${MSG}" | tee -a ${PLEXLOGFILE}
 			error_notify ${MSG}
 			exit 1
 		fi
@@ -263,9 +273,11 @@ plexdata_restore()
 					exit 1
 				fi
 			fi
+
+			log_current_date
 			if [ 0 -eq "$?" ]; then
 				MSG="Plexdata restored successfully"
-				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+				echo "${DATELOG}: ${MSG}" | tee -a ${PLEXLOGFILE}
 				logger -t ${SCRIPTNAME} ${MSG}
 				if ps -acx | grep -q "Plex Media Server"; then
 					service ${CMDNAME}${CMD_ARG} onerestart 2> /dev/null || ${PLEXRCD}${CMD_ARG} onerestart
@@ -273,7 +285,7 @@ plexdata_restore()
 				exit 0
 			else
 				MSG="A problem has occurred during the restore process."
-				echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+				echo "${DATELOG}: ${MSG}" | tee -a ${PLEXLOGFILE}
 				error_notify ${MSG}
 			fi
 		else
@@ -287,14 +299,57 @@ update_freebsdconf()
 	# Update FreeBSD.conf to fetch latest packages.
 	if [ -f "${PKGCONF}" ]; then 
 		if grep -q "quarterly" ${PKGCONF}; then
+			cp ${PKGCONF} ${PKGCONF}.bak
 			sed -i '' -E "s/quarterly/latest/g" ${PKGCONF} || \
 			error_notify "Error: A problem has occurred while updating FreeBSD.conf file."
 		fi
 	fi
 }
 
+gen_current_version()
+{
+	# Retrieve and generate the current plex version.
+	GEN_PLEXVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} 2> /dev/null)
+	if [ -n "${GEN_PLEXVERSION}" ]; then
+		echo "Set current plex version..."
+		echo "${GEN_PLEXVERSION}" > ${CWDIR}/plexversion
+	fi
+}
+
+get_plex_licpath()
+{
+	# Retrieve current plex licence.
+	PLEXLIC_PATH=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk 'NR==1' | cut -d' ' -f1)
+}
+
+unionfs_on() {
+	if ! df | grep -q "${CWDIR}/system/pkg/db"; then
+		echo "Enabling UnionFS for pkg db..."
+		mount_unionfs -o avobe ${CWDIR}/system/pkg/db /var/db/pkg
+	fi
+	if ! df | grep -q "${CWDIR}/system/pkg/cache"; then
+		echo "Enabling UnionFS for pkg cache..."
+		mount_unionfs -o above ${CWDIR}/system/pkg/cache /var/cache/pkg
+	fi
+}
+
+unionfs_off() {
+	if df | grep -q "${CWDIR}/system/pkg/db"; then
+		echo "Disabling UnionFS for pkg db..."
+		umount -f /var/db/pkg
+	fi
+	if df | grep -q "${CWDIR}/system/pkg/cache"; then
+		echo "Disabling UnionFS for pkg cache..."
+		umount -f /var/cache/pkg
+	fi
+}
+
 plex_initial_download()
 {
+	# As off Plex Extension version 4.4.0. we will use <above> unionfs temporary mount points for the pkg tool db and cache,
+	# then users can opt to installing Plex through embedded platforms with pkg tool, this way will keep the current extension behavior -
+	# except for 'pkg info' command when unionfs disabled, for this the extension will generate a file called 'plexversion' for convenience.
+
 	# Update FreeBSD.conf file.
 	update_freebsdconf
 
@@ -305,24 +360,74 @@ plex_initial_download()
 			# Remove previous version file from tarball upgrades.
 			rm -f ${CWDIR}/plexversion
 		fi
-		pkg install -y ${PRDNAME}${PKG_ARG}
+
+		if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
+			# Check for required directories.
+			pkg_symlinkdir
+			plex_symlinkdir
+
+			# Ennable UnionFS.
+			unionfs_on
+
+			# Fetch plex package as usual.
+			pkg install -y ${PRDNAME}${PKG_ARG}
+
+			# Write plex version.
+			gen_current_version
+
+			# Backup latest plex license after upgrade on embedded.
+			if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
+				get_plex_licpath
+				if [ -d "${LICPATH}/${PLEXLIC_PATH}" ]; then
+					cp -r ${LICPATH}/${PLEXLIC_PATH} ${CWDIR}/system/licence || \
+					error_notify "Error: A problem has occurred while copying plex rc file."
+				fi
+			fi
+
+			# Disable UnionFS.
+			unionfs_off
+		else
+			# Since this package has no dependencies that may harm the system,
+			# we let the package to be managed by the pkg tool natively.
+			pkg install -y ${PRDNAME}${PKG_ARG}
+
+			# Re-check if Plex diretory/application exist.
+			if [ ! -f "${PLEXPATH}${PKG_ARG}/${CMDFILE}" ]; then
+				error_notify "Error: A problem has occurred while fetching/locating plexmediaserver."
+			fi
+		fi
+
 		# Re-check if Plex diretory/application exist.
 		if [ ! -f "${PLEXPATH}${PKG_ARG}/${CMDFILE}" ]; then
 			error_notify "Error: A problem has occurred while fetching/locating plexmediaserver."
 		fi
 	fi
 
-	# Backup latest plex rcd after install if embedded.
+	# Copy custom rc file.
+	if [ -f "${CWDIR}/conf/rc.d/${CMDNAME}${CMD_ARG}" ]; then
+		cp ${CWDIR}/conf/rc.d/${CMDNAME}${CMD_ARG} ${PLEXRCD}${CMD_ARG} || error_notify "Error: A problem has occurred while copying rc file."
+	fi
+
+	# Backup latest plex rcd after install on embedded.
 	if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
 		if [ -f "${PLEXRCD}${CMD_ARG}" ]; then
 			cp ${PLEXRCD}${CMD_ARG} ${CWDIR}/system/rc.d/ || \
-			error_notify "Error: A problem has occurred while copying rcd file."
+			error_notify "Error: A problem has occurred while copying rc file."
 		fi
 	fi
 }
 
 pkg_upgrade()
 {
+	if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
+		# Check for required directories.
+		pkg_symlinkdir
+		plex_symlinkdir
+
+		# Enable UnionFS.
+		unionfs_on
+	fi
+
 	if [ ! -f "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${CMDFILE}" ]; then
 		echo "${FULLPRDNAME} package it not installed."
 	fi
@@ -341,6 +446,7 @@ pkg_upgrade()
 
 		# Get current plex version.
 		get_plex_version
+		PLEXVERSION_CURRENT="${PLEXVERSION}"
 
 		# Check for latest plex packages for upgrade.
 		if ! pkg upgrade -n ${PRDNAME}${PKG_ARG} > /dev/null 2>&1; then
@@ -356,33 +462,55 @@ pkg_upgrade()
 			else
 				pkg upgrade -y ${PRDNAME}${PKG_ARG}
 			fi
+
+			if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
+				# Write new plex version.
+				gen_current_version
+			fi
+
+			# Get new plex version.
+			get_plex_version
+			PLEXVERSION_NEW="${PLEXVERSION}"
+
+			# Logging on upgrade success.
+			if [ "${PLEXVERSION_NEW}" -gt "${PLEXVERSION_CURRENT}" ]; then
+				log_current_date
+				PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}')
+				echo "${DATELOG}: ${FULLPRDNAME} upgraded to ${PLEXNEWVERSION}" >> ${PLEXLOGFILE}
+				echo "${FULLPRDNAME} package upgrade completed!"
+			fi
 		else
 			echo "${FULLPRDNAME} package is up to date."
 		fi
 
-		# Get new plex version.
-		if [ -z "${PKG_ARG}" ]; then
-			PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2 | tr -d . | sed 's/_[0-9]//g')
-		else
-			PLEXNEWVERSION=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f3 | tr -d . | sed 's/_[0-9]//g')
+		# Copy custom rc file.
+		if [ -f "${CWDIR}/conf/rc.d/${CMDNAME}${CMD_ARG}" ]; then
+			cp ${CWDIR}/conf/rc.d/${CMDNAME}${CMD_ARG} ${PLEXRCD}${CMD_ARG} || error_notify "Error: A problem has occurred while copying rc file."
 		fi
 
-		# Logging on upgrade success.
-		if [ "${PLEXNEWVERSION}" -gt "${PLEXVERSION}" ]; then
-			PLEXNEWVER=$(pkg info -I ${PRDNAME}${PKG_ARG} | awk '{print $1}' | cut -d- -f2)
-			echo "${DATE}: ${FULLPRDNAME} upgraded to ${PLEXNEWVER}" >> ${PLEXLOGFILE}
-			echo "${FULLPRDNAME} package upgrade completed!"
-		fi
-
-		# Backup latest plex rcd after upgrade if embedded.
+		# Backup latest plex rcd after upgrade on embedded.
 		if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
 			if [ -f "${PLEXRCD}${CMD_ARG}" ]; then
 				cp ${PLEXRCD}${CMD_ARG} ${CWDIR}/system/rc.d/ || \
 				error_notify "Error: A problem has occurred while copying plex rc file."
 			fi
 		fi
+
+		# Backup latest plex license after upgrade on embedded.
+		if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
+			get_plex_licpath
+			if [ -d "${LICPATH}/${PLEXLIC_PATH}" ]; then
+				cp -r ${LICPATH}/${PLEXLIC_PATH} ${CWDIR}/system/licence || \
+				error_notify "Error: A problem has occurred while copying plex rc file."
+			fi
+		fi
 	else
 		echo "This setup requires latest ${FULLPRDNAME} tarball for upgrades."
+	fi
+
+	if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
+		# Disable UnionFS.
+		unionfs_off
 	fi
 
 	# Check and upgrade extension package.
@@ -447,13 +575,14 @@ extract_tarball()
 		echo "Extracting ${PLEXTARBALL}..."
 		EXCLUDE="--exclude=start.sh"
 		tar ${EXCLUDE} -xf ${CWDIR}/${PLEXTARBALL} --strip-components 1 -C ${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/
+		log_current_date
 		if [ 0 -eq "$?" ]; then
 			# Set new version on success.
 			SETVERSION=$(echo "${PLEXTARBALL}" | cut -d'-' -f2)
 			echo "${PRDNAME}${PKG_ARG}-${SETVERSION}    ${FULLPRDNAME} component" > ${CWDIR}/plexversion
 
 			MSG="${FULLPRDNAME} tarball extracted successfully."
-			echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+			echo "${DATELOG}: ${MSG}" | tee -a ${PLEXLOGFILE}
 			logger -t ${SCRIPTNAME} ${MSG}
 			rm  ${CWDIR}/${PLEXTARBALL}
 
@@ -461,7 +590,6 @@ extract_tarball()
 				ln -fs "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${FULLPRDNAME}" "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${CMDFILE}"
 				if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
 					if [ -f "${CWDIR}/conf/rc.d/${CMDNAME}${CMD_ARG}" ]; then
-						cp ${CWDIR}/conf/rc.d/${CMDNAME}${CMD_ARG} ${CWDIR}/system/rc.d/${CMDNAME}${CMD_ARG}
 						plex_rcd_link
 					fi
 				elif [ "${PRDPLATFORM}" = "x64-full" ]; then
@@ -470,12 +598,13 @@ extract_tarball()
 					fi
 				fi
 			fi
+
 			# Check and start plex after upgrade.
 			post_upgrade_cmd
 			exit 0
 		else
 			MSG="Error: A problem has occurred during tarball file extraction."
-			echo "${DATE}: ${MSG}" | tee -a ${PLEXLOGFILE}
+			echo "${DATELOG}: ${MSG}" | tee -a ${PLEXLOGFILE}
 			error_notify ${MSG}
 		fi
 	else
@@ -493,6 +622,7 @@ extension_upgrade()
 {
 	# Check if local .zip achive exist then auto-upgrade extension files, otherwise perform online upgrade.
 	echo "Looking for new ${APPNAME} package!"
+	log_current_date
 	if [ -f "${CWDIR}/*${BRANCH}.zip" ]; then
 		echo "New ${APPNAME} package found, performing upgrade..."
 		mkdir -p ${CWDIR}/update
@@ -504,7 +634,7 @@ extension_upgrade()
 		update_guifiles
 		# Logging the update event.
 		UPDATEVERSION=$(cat ${CWDIR}/version)
-		echo "${DATE}: ${APPNAME} upgraded to ${UPDATEVERSION}" >> ${PLEXLOGFILE}
+		echo "${DATELOG}: ${APPNAME} upgraded to ${UPDATEVERSION}" >> ${PLEXLOGFILE}
 		echo "${APPNAME} upgraded to version ${UPDATEVERSION}"
 		echo "${APPNAME} package upgrade completed!"
 	else
@@ -527,7 +657,7 @@ extension_upgrade()
 				update_guifiles
 				# Logging the update event.
 				UPDATEVERSION=$(cat ${CWDIR}/version)
-				echo "${DATE}: ${APPNAME} upgraded to ${UPDATEVERSION}" >> ${PLEXLOGFILE}
+				echo "${DATELOG}: ${APPNAME} upgraded to ${UPDATEVERSION}" >> ${PLEXLOGFILE}
 				echo "${APPNAME} upgraded to version ${UPDATEVERSION}"
 				echo "${APPNAME} package upgrade completed!"
 			else
@@ -585,6 +715,7 @@ product_check()
 {
 	# Check for the working product.
 	if [ "${PRODUCT}" = "NAS4FREE-x64" ] || [ "${PRODUCT}" = "XIGMANAS-x64" ]; then
+		remove_obsolete
 		postinit_cmd
 		gui_start
 	fi
@@ -595,10 +726,21 @@ platform_check()
 	# Check for working platform.
 	if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
 		pkg_symlinkdir
-		compat_symlinkdir
 		plex_symlinkdir
 		plex_rcd_link
+		plex_lic_link
 	fi
+}
+
+remove_obsolete()
+{
+	# Remove obsolete content.
+	REM_FILES="${CWDIR}/postinit ${CWDIR}/release_notes"
+	for file in ${REM_FILES}; do
+		if [ -f "${file}" ] || [ -d "${file}" ] || [ -L "${file}" ]; then
+			rm -rf ${file}
+		fi
+	done
 }
 
 postinit_cmd()
@@ -607,25 +749,8 @@ postinit_cmd()
 	if ! grep -qw ${CWDIR}/${SCRIPTNAME} ${CONFIG}; then
 		touch ${CWDIR}/postinit || error_notify "Error: A problem has occurred while creating the postinit file."
 		chmod +x ${CWDIR}/postinit
-		if [ ! "${PRDVERSION}" -ge "110" ]; then
-			# Generate php script for previous versions.
-			cat << EOF > ${CWDIR}/postinit
-<?php
-require_once("config.inc");
-require_once("functions.inc");
-\$cmd = dirname(__FILE__)."/${SCRIPTNAME}";
-	\$i =0;
-	if ( is_array(\$config['rc']['postinit'] ) && is_array( \$config['rc']['postinit']['cmd'] ) ) {
-		for (\$i; \$i < count(\$config['rc']['postinit']['cmd']);) {
-			if (preg_match('/${SCRIPTNAME}/', \$config['rc']['postinit']['cmd'][\$i])) break; ++\$i; }
-	}
-	\$config['rc']['postinit']['cmd'][\$i] = \$config['cmd']."\$cmd";
-	write_config();
-?>
-EOF
-		else
-			# Generate php script for XigmaNAS 11.x versions.
-			cat << EOF > ${CWDIR}/postinit
+		# Generate php script for XigmaNAS 13.x and later versions.
+		cat << EOF > ${CWDIR}/postinit
 <?php
 require_once("config.inc");
 require_once("functions.inc");
@@ -647,7 +772,6 @@ endif;
 unset(\$rc);
 ?>
 EOF
-		fi
 
 		# Set standard plex pkg for informational purposes.
 		if [ -z "${PKG_ARG}" ]; then
@@ -769,62 +893,21 @@ plex_rc_params()
 
 pkg_symlinkdir()
 {
-	# Check and create/relink required symlinks/dirs for package cache and db.
-	# This may be already performed by any prevously installed Extension,
-	# supporting this aproach, in that case will reuse the existing environment.
-	if [ -d "${PKGCACHE}" ]; then
-		if [ ! -L "${PKGCACHE}" ]; then
-			rm -R ${PKGCACHE}
-			mkdir -p ${CWDIR}/system/pkg/cache
-			ln -Ffhs ${CWDIR}/system/pkg/cache ${PKGCACHE}
-		fi
-	else
-		mkdir -m 0755 -p /var/cache
-		mkdir -p ${CWDIR}/system/pkg/cache
-		ln -Ffhs ${CWDIR}/system/pkg/cache ${PKGCACHE}
-	fi
-	if [ -d "${PKGDB}" ]; then
-		if [ ! -L "${PKGDB}" ]; then
-			rm -R ${PKGDB}
-			mkdir -p ${CWDIR}/system/pkg/db
-			ln -Ffhs ${CWDIR}/system/pkg/db ${PKGDB}
-		fi
-	else
-		mkdir -p ${CWDIR}/system/pkg/db
-		ln -Ffhs ${CWDIR}/system/pkg/db ${PKGDB}
-	fi
-}
+	# Check and create required dirs for package cache and db on embedded platforms.
+	# We will use <above> unionfs temporary mount points for the pkg tool db and cache.
 
-compat_symlinkdir()
-{
-	# Check and create/relink required symlinks/dirs for compat libs.
-	# This is for backward compatibility only.
-	if [ -f "${USRLOCALPATH}/${PRDNAME}${PKG_ARG}/${CMDFILE}" ]; then
-		if [ ! -f "${CWDIR}/plexversion" ]; then
-			get_plex_version
-			if [ "${PLEXVERSION}" -lt "${PLEXMINVER}" ]; then
-				if [ ! -d "${COMPATPATH1}" ]; then
-					mkdir -m 0755 -p /usr/local/lib
-					mkdir -p ${CWDIR}/system/compat/lib/compat
-					ln -Ffhs ${CWDIR}/system/compat/lib/compat ${COMPATPATH1}
-				fi
-				if [ ! -d "${COMPATPATH2}" ]; then
-					mkdir -m 0755 -p /usr/local/lib32
-					mkdir -p ${CWDIR}/system/compat/lib32/compat
-					ln -Ffhs ${CWDIR}/system/compat/lib32/compat ${COMPATPATH2}
-				fi
-				if [ ! -d "${COMPATPATH3}" ]; then
-					mkdir -m 0755 -p /usr/local/libdata
-					mkdir -p ${CWDIR}/system/compat/libdata/ldconfig
-					ln -Ffhs ${CWDIR}/system/compat/libdata/ldconfig ${COMPATPATH3}
-				fi
-				if [ ! -d "${COMPATPATH4}" ]; then
-					mkdir -m 0755 -p /usr/local/libdata
-					mkdir -p ${CWDIR}/system/compat/libdata/ldconfig32
-					ln -Ffhs ${CWDIR}/system/compat/libdata/ldconfig32 ${COMPATPATH4}
-				fi
-			fi
-		fi
+	if [ -d "${PKGCACHE}" ] && [ -L "${PKGCACHE}" ]; then
+		rm -r ${PKGCACHE}
+		mkdir -m 0755 -p ${PKGCACHE}
+	elif [ ! -d "${PKGCACHE}" ]; then
+		mkdir -m 0755 -p ${PKGCACHE}
+	fi
+
+	if [ -d "${PKGDB}" ] && [ -L "${PKGDB}" ]; then
+		rm -r ${PKGDB}
+		mkdir -m 0755 -p ${PKGDB}
+	elif [ ! -d "${PKGDB}" ]; then
+		mkdir -m 0755 -p ${PKGDB}
 	fi
 }
 
@@ -844,14 +927,39 @@ plex_symlinkdir()
 	if [ ! -d "${CWDIR}/system/rc.d" ]; then
 		mkdir -p ${CWDIR}/system/rc.d
 	fi
+	if [ ! -d "${CWDIR}/system/pkg/db" ]; then
+		mkdir -p ${CWDIR}/system/pkg/db
+	fi
+	if [ ! -d "${CWDIR}/system/pkg/cache" ]; then
+		mkdir -p ${CWDIR}/system/pkg/cache
+	fi
+	if [ ! -d "${CWDIR}/system/licence" ]; then
+		mkdir -p ${CWDIR}/system/licence
+	fi
 }
 
 plex_rcd_link()
 {
-	# Restore current plex rcd if embedded.
+	# Restore current plex rcd on embedded.
 	if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
-		if [ -f "${CWDIR}/system/rc.d/${CMDNAME}${CMD_ARG}" ]; then
-			cp ${CWDIR}/system/rc.d/${CMDNAME}${CMD_ARG} ${RCDPATH}/ || error_notify "Error: A problem has occurred while copying rcd file."
+		if [ -f "${CWDIR}/conf/rc.d/${CMDNAME}${CMD_ARG}" ]; then
+			cp ${CWDIR}/conf/rc.d/${CMDNAME}${CMD_ARG} ${PLEXRCD}${CMD_ARG} || error_notify "Error: A problem has occurred while copying rc file."
+		elif [ -f "${CWDIR}/system/rc.d/${CMDNAME}${CMD_ARG}" ]; then
+			cp ${CWDIR}/system/rc.d/${CMDNAME}${CMD_ARG} ${RCDPATH}/ || error_notify "Error: A problem has occurred while copying rc file."
+		fi
+	fi
+}
+
+plex_lic_link()
+{
+	# Restore current plex license on embedded.
+	if [ "${PRDPLATFORM}" = "x64-embedded" ]; then
+		if [ -f "${CWDIR}/plexversion" ]; then
+			PLEXLIC_VERSION=$(cat ${CWDIR}/plexversion | awk '{print $1}')
+			if [ -d "${CWDIR}/system/licence/${PLEXLIC_VERSION}" ]; then
+				cp -r ${CWDIR}/system/licence/${PLEXLIC_VERSION} ${LICPATH}/ || \
+				error_notify "Error: A problem has occurred while copying plex rc file."
+			fi
 		fi
 	fi
 }
@@ -972,7 +1080,7 @@ plex_init()
 		echo "Unsupported platform!"; exit 1
 	fi
 	# Check for product compatibility.
-	if [ ! "${PRDVERSION}" -ge "110" ]; then
+	if [ ! "${PRDVERSION}" -ge "130" ]; then
 		echo "Unsupported version!"; exit 1
 	fi
 

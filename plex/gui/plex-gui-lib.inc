@@ -1,8 +1,6 @@
 <?php
 /*
-	plex-gui-lib.inc
-
-	Copyright (c) 2018 - 2019 Jose Rivera (JoseMR)
+    Copyright (c) 2018 - 2025 José Rivera (JoseMR)
     All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -24,6 +22,10 @@
     ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    plex-gui-lib.inc
+
+    Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
 */
 
 // Initialize some variables.
@@ -40,8 +42,7 @@ $rootfolder = $cwdir;
 $configfile = "{$rootfolder}/conf/plex_config";
 $versionfile = "{$rootfolder}/version";
 $tarballversion = "{$rootfolder}/plexversion";
-//$date = strftime('%c');                // Previous PHP versions, deprecated as of PHP 8.1.
-$date = date('D M d h:i:s Y', time());   // Equivalent date replacement for the previous strftime function.
+$date = date('D M d h:i:s Y', time());
 $logfile = "{$rootfolder}/log/plex_ext.log";
 $logevent = "{$rootfolder}/log/plex_last_event.log";
 

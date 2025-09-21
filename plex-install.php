@@ -1,41 +1,42 @@
 <?php
 /* 
-	plex-install.php
+    Copyright (c) 2016 - 2025 José Rivera (JoseMR)
+    Copyright (c) 2015 - 2016 Andreas Schmidhuber (crestAT)
+    All rights reserved.
 
-	Installer for the XigmaNAS "Plex Media Server*" add-on created by J.M Rivera.
-	(https://www.xigmanas.com/forums/viewtopic.php?f=71&t=11184)
-	*Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
 
-	Installer based on OneButtonInstaller(OBI.php) XigmaNAS extension created by Andreas Schmidhuber(crest).
-	Credits to Andreas Schmidhuber(crest).
+    1. Redistributions of source code must retain the above copyright notice, this
+       list of conditions and the following disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright notice,
+       this list of conditions and the following disclaimer in the documentation
+       and/or other materials provided with the distribution.
 
-	Copyright (c) 2015 - 2016 Andreas Schmidhuber
-	All rights reserved.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+    ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-	Redistribution and use in source and binary forms, with or without
-	modification, are permitted provided that the following conditions are met:
+    The views and conclusions contained in the software and documentation are those
+    of the authors and should not be interpreted as representing official policies,
+    either expressed or implied, of the FreeBSD Project.
 
-	1. Redistributions of source code must retain the above copyright notice, this
-	   list of conditions and the following disclaimer.
-	2. Redistributions in binary form must reproduce the above copyright notice,
-	   this list of conditions and the following disclaimer in the documentation
-	   and/or other materials provided with the distribution.
+    plex-install.php
 
-	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-	ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-	WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-	ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-	(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-	LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-	ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+    Installer for the XigmaNAS(r) "Plex Media Server*" add-on created by José Rivera (JoseMR).
+    Installer based on OneButtonInstaller(OBI.php) XigmaNAS(r) extension created by Andreas Schmidhuber(crestAT).
+    Credits to Andreas Schmidhuber(crest).
 
-	The views and conclusions contained in the software and documentation are those
-	of the authors and should not be interpreted as representing official policies,
-	either expressed or implied, of the FreeBSD Project.
+    Plex(c) (Plex Media Server) is a registered trademark of Plex(c), Inc.
  */
+
 require("auth.inc");
 require("guiconfig.inc");
 
@@ -54,25 +55,25 @@ set the permission to 775 for the last directory in the path.
 function change_perms($dir) {
 	global $input_errors;
 
-	$path = rtrim($dir,'/');											// Remove trailing slash.
+	$path = rtrim($dir,'/');                                                               // Remove trailing slash.
 	if (strlen($path) > 1) {
-		if (!is_dir($path)) {											// Check if directory exists.
+		if (!is_dir($path)) {                                                              // Check if directory exists.
 			$input_errors[] = sprintf(gtext("Directory %s doesn't exist!"), $path);
 		}
 		else {
-			$path_check = explode("/", $path);							// Split path to get directory names.
-			$path_elements = count($path_check);						// Get path depth.
-			$fp = substr(sprintf('%o', fileperms("/$path_check[1]/$path_check[2]")), -1);	// Get mountpoint permissions for others.
-			if ($fp >= 5) {												// Some  applications needs at least read & search permission at the mountpoint.
-				$directory = "/$path_check[1]/$path_check[2]";			// Set to the mountpoint.
-				for ($i = 3; $i < $path_elements - 1; $i++) {			// Traverse the path and set permissions to rx.
-					$directory = $directory."/$path_check[$i]";			// Add next level.
-					exec("chmod o=+r+x \"$directory\"");				// Set permissions to o=+r+x.
+			$path_check = explode("/", $path);                                             // Split path to get directory names.
+			$path_elements = count($path_check);                                           // Get path depth.
+			$fp = substr(sprintf('%o', fileperms("/$path_check[1]/$path_check[2]")), -1);  // Get mountpoint permissions for others.
+			if ($fp >= 5) {                                                                // Some  applications needs at least read & search permission at the mountpoint.
+				$directory = "/$path_check[1]/$path_check[2]";                             // Set to the mountpoint.
+				for ($i = 3; $i < $path_elements - 1; $i++) {                              // Traverse the path and set permissions to rx.
+					$directory = $directory."/$path_check[$i]";                            // Add next level.
+					exec("chmod o=+r+x \"$directory\"");                                   // Set permissions to o=+r+x.
 				}
 				$path_elements = $path_elements - 1;
-				$directory = $directory."/$path_check[$path_elements]";	// Add last level.
-				exec("chmod 775 {$directory}");				// Set permissions to 775.
-				//exec("chown {$_POST['who']} {$directory}*");          // This is not yet functional.
+				$directory = $directory."/$path_check[$path_elements]";                    // Add last level.
+				exec("chmod 775 {$directory}");                                            // Set permissions to 775.
+				//exec("chown {$_POST['who']} {$directory}*");                             // This is not yet functional.
 			}
 			else {
 				$input_errors[] = sprintf(gtext("%s needs at least read & execute permissions at the mount point for directory %s! Set the Read and Execute bits for Others (Access Restrictions | Mode) for the mount point %s (in <a href='disks_mount.php'>Disks | Mount Point | Management</a> or <a href='disks_zfs_dataset.php'>Disks | ZFS | Datasets</a>) and hit Save in order to take them effect."), $application, $path, "/{$path_check[1]}/{$path_check[2]}");
@@ -85,7 +86,7 @@ if (isset($_POST['save-install']) && $_POST['save-install']) {
 	unset($input_errors);
 	if (empty($input_errors)) {
 		$config['plex']['storage_path'] = !empty($_POST['storage_path']) ? $_POST['storage_path'] : $g['media_path'];
-		$config['plex']['storage_path'] = rtrim($config['plex']['storage_path'],'/');	// Ensure to have NO trailing slash.
+		$config['plex']['storage_path'] = rtrim($config['plex']['storage_path'],'/');  // Ensure to have NO trailing slash.
 		if (!isset($_POST['path_check']) && (strpos($config['plex']['storage_path'], "/mnt/") === false)) {
 			$input_errors[] = gtext("The common directory for extensions MUST be set to a directory below '/mnt/' to prevent to loose the extension after a reboot on embedded systems!");
 		}
@@ -93,7 +94,7 @@ if (isset($_POST['save-install']) && $_POST['save-install']) {
 			if (!is_dir($config['plex']['storage_path'])) mkdir($config['plex']['storage_path'], 0775, true);
 			change_perms($config['plex']['storage_path']);
 			$config['plex']['path_check'] = isset($_POST['path_check']) ? true : false;
-			$install_dir = $config['plex']['storage_path']."/";	// Get directory where the installer script resides.
+			$install_dir = $config['plex']['storage_path']."/";  // Get directory where the installer script resides.
 			if (!is_dir("{$install_dir}plex/log")) { mkdir("{$install_dir}plex/log", 0775, true); }
 			$return_val = mwexec("fetch -avo {$install_dir}plex/plexinit --no-verify-peer --timeout=30 {$git_url}", true);
 			if ($return_val == 0) {
