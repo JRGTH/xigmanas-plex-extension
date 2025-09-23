@@ -1,5 +1,5 @@
 > [!NOTE]
-> Heads up: As of September 21, 2025, this repo is no longer maintained. After a discussion through several emails, the project has found a new home under the  zoon01/xigmanas-plex-extension:
+> Heads up: As of September 23, 2025, this repo is no longer maintained. After a discussion through several emails, the project has found a new home under the  zoon01/xigmanas-plex-extension:
 >
 > 👉 https://github.com/zoon01/xigmanas-plex-extension
 >
